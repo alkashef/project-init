@@ -116,8 +116,10 @@ Do not edit it.
 2. Install the skill: copy `skills/project-init` to `%USERPROFILE%\.claude\skills\project-init`, and
    delete the old `%USERPROFILE%\.claude\skills\project-docs-init` it replaces. Copy again after
    every change.
-3. For the GitHub step: `winget install GitHub.cli`, then `gh auth login`. Git needs `user.name`
-   and `user.email`.
+3. For the GitHub step: `winget install GitHub.cli`, then open a new terminal (the old one does
+   not see the new PATH) and run `gh auth login`. Git needs `user.name` and `user.email`. If winget
+   fails with `0x8a15000f` (data required by the source is missing), run
+   `winget source reset --force` in an administrator terminal, then install again.
 4. For the conda step: Miniconda, set up for cmd once with `conda init cmd.exe`, so that
    `conda activate` works in the VS Code terminal.
 
@@ -263,4 +265,8 @@ the suite):
 Also run once by hand: the skill with the real conda, in a scratch folder. It created the
 environment in about 30 seconds, and `conda activate <name>` in cmd then found its Python 3.12.
 
-Not verified yet: a run against the real `gh` (see `TODO.md`).
+Also run once by hand: the installed skill against the real `gh` 2.102.0, in a scratch folder. It
+created the private repository `project-init-smoke-test` with the purpose as its description,
+pushed one commit to `main` (the same commit as the local one, 32 files and folders on GitHub),
+and created the conda environment. A second run with the same name in another empty folder was
+refused (`already exists`) and left that folder empty.

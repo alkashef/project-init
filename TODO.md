@@ -10,6 +10,6 @@
    - `deadcode/find_unreferenced.py` is a script: lint and type-check it like the others.
    - Neither is installed in `%USERPROFILE%\.claude\skills\`.
 
-1. **Run the skill against the real `gh`.** Install it (`winget install GitHub.cli`), then
-   `gh auth login` and `gh auth refresh -s delete_repo`. Then run the skill in a scratch folder
-   (private repository `project-init-smoke-test`), check the repository, and delete it.
+1. **Delete the smoke-test repository** `alkashef/project-init-smoke-test` (private). The real-gh
+   run passed; only the clean-up is left. Either run `gh auth refresh -s delete_repo` and ask
+   Claude to delete it, or delete it on GitHub: Settings > Danger Zone > Delete this repository.
