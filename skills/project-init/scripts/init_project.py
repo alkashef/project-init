@@ -1,20 +1,23 @@
-"""Set up the current folder as a new project: scaffold, git repository, and GitHub repository.
+"""Set up the current folder as a new project: scaffold, git, GitHub, and a conda environment.
 
 Run it from a new, empty project folder (the folder open in VS Code). Nothing is changed until
 every check passes. Then, in order: `git init` (unless the folder is already a repository with no
 commits), build the scaffold with build_instance.py (CLAUDE.md, rules, docs, configs, starting
-folders), commit, create the GitHub repository (unless `origin` already exists), and push. The
-scaffold files come from the skill's `assets/` folder (next to this `scripts/` folder).
+folders), commit, create the GitHub repository (unless `origin` already exists), push, and create
+a conda environment with the project's name (unless one exists). The scaffold files come from the
+skill's `assets/` folder (next to this `scripts/` folder).
 
 Usage:
     python init_project.py --with python http-apis --purpose "Does X"
     python init_project.py --no-github            # local repository only
     python init_project.py --remote-url URL       # push to a repository that exists
 Options: --name (default: the folder name), --folder (default: the current folder), --public (the
-default is private).
+default is private), --no-conda (no conda environment).
 """
 
 import argparse
+import json
+import os
 import re
 import shutil
 import subprocess
@@ -31,6 +34,8 @@ class Plan:
     gh: str | None
     has_repo: bool
     has_origin: bool
+    conda: str | None
+    has_env: bool
 
 
 def run(command: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
@@ -122,6 +127,39 @@ def github_tool(name: str) -> str:
     return gh
 
 
+def find_conda() -> str:
+    """Return the conda executable: $CONDA_EXE, conda on PATH, or Miniconda's default place."""
+    candidates = [os.environ.get("CONDA_EXE", ""), shutil.which("conda") or ""]
+    for home in (os.environ.get("LOCALAPPDATA", ""), os.environ.get("USERPROFILE", "")):
+        if home:
+            candidates.append(str(Path(home) / "miniconda3" / "Scripts" / "conda.exe"))
+    for candidate in candidates:
+        if candidate and Path(candidate).is_file():
+            return candidate
+    raise SystemExit(
+        "error: conda is not installed. Install Miniconda, or pass --no-conda to skip the "
+        "project's conda environment."
+    )
+
+
+def conda_env_exists(conda: str, name: str) -> bool:
+    """Return True if conda already has an environment with this name."""
+    envs: list[str] = json.loads(run_ok([conda, "env", "list", "--json"]))["envs"]
+    return any(Path(env).name == name for env in envs)
+
+
+def create_env(conda: str, name: str) -> None:
+    """Create the project's conda environment. On failure, say how to finish by hand."""
+    command = [conda, "create", "-n", name, "python=3.12", "-y"]
+    result = run(command)
+    if result.returncode != 0:
+        raise SystemExit(
+            f"error: conda could not create the environment:\n{result.stderr.strip()}\n"
+            "The project is set up and committed. Run "
+            f"`conda create -n {name} python=3.12` yourself."
+        )
+
+
 def build_command(folder: Path, args: argparse.Namespace) -> list[str]:
     """Return the command that builds the scaffold."""
     builder = Path(__file__).resolve().with_name("build_instance.py")
@@ -153,7 +191,10 @@ def preflight(args: argparse.Namespace, folder: Path) -> Plan:
         raise SystemExit("error: this repository already has an `origin`. Drop --remote-url.")
     run_ok([*build_command(folder, args), "--dry-run"])
     needs_gh = not (args.no_github or args.remote_url or has_origin)
-    return Plan(git, github_tool(args.name) if needs_gh else None, has_repo, has_origin)
+    gh = github_tool(args.name) if needs_gh else None
+    conda = None if args.no_conda else find_conda()
+    has_env = conda is not None and conda_env_exists(conda, args.name)
+    return Plan(git, gh, has_repo, has_origin, conda, has_env)
 
 
 def create_project(args: argparse.Namespace, folder: Path, plan: Plan) -> list[str]:
@@ -199,6 +240,16 @@ def publish(args: argparse.Namespace, folder: Path, plan: Plan) -> str:
     return run_ok([plan.git, "remote", "get-url", "origin"], folder)
 
 
+def set_up_env(name: str, plan: Plan) -> str:
+    """Create the conda environment unless it exists or was skipped. Return what happened."""
+    if plan.conda is None:
+        return "skipped (--no-conda)"
+    if plan.has_env:
+        return f"{name} (already existed, kept as it was)"
+    create_env(plan.conda, name)
+    return f"{name} (created, Python 3.12)"
+
+
 def add_remote_options(parser: argparse.ArgumentParser) -> None:
     """Add the options that say where the project is pushed."""
     parser.add_argument("--public", action="store_true", help="make the repository public")
@@ -218,6 +269,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--test-command", default="", help="overrides the test command")
     parser.add_argument("--run-command", default="", help="overrides the run command")
     add_remote_options(parser)
+    parser.add_argument("--no-conda", action="store_true", help="no conda environment")
     args = parser.parse_args()
     args.folder = args.folder.resolve()
     args.name = args.name or args.folder.name
@@ -230,11 +282,13 @@ def main() -> int:
     plan = preflight(args, args.folder)
     report = create_project(args, args.folder, plan)
     url = publish(args, args.folder, plan)
+    env = set_up_env(args.name, plan)
     skipped = [line for line in report if line.startswith("skipped")]
     print(f"Set up {args.folder}: {len(report) - len(skipped)} files and folders, committed.")
     if skipped:
         print(f"{len(skipped)} already existed and were kept as they were.")
     print(f"Remote: {url or 'none (local git only)'}")
+    print(f"Conda environment: {env}")
     return 0
 
 

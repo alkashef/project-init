@@ -21,6 +21,14 @@
   "[css]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "terminal.integrated.profiles.windows": {
+    "cmd ({{PROJECT_NAME}})": {
+      "path": "${env:windir}\\System32\\cmd.exe",
+      "args": ["/K", "conda activate {{PROJECT_NAME}}"],
+      "icon": "terminal-cmd"
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "cmd ({{PROJECT_NAME}})",
   "mypy-type-checker.args": ["--config-file=mypy.ini"],
   "python.testing.pytestEnabled": true,
   "python.testing.pytestArgs": ["tests"],

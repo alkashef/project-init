@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: Set up the current folder as a new project from the golden templates and push it to GitHub. Run it in a new, empty project folder that is open in VS Code. Builds CLAUDE.md, the path-scoped rules, docs/ (workflow, inbox, spec, design, plan), README, tool configs and starting folders, then commits, creates the GitHub repository and pushes. Use whenever the user wants to start, init, bootstrap or scaffold a new project or repo, or says "new project", even if they do not mention GitHub or the docs. Not for adding files to an existing project.
+description: Set up the current folder as a new project from the golden templates and push it to GitHub. Run it in a new, empty project folder that is open in VS Code. Builds CLAUDE.md, the path-scoped rules, docs/ (workflow, inbox, spec, design, plan), README, tool configs and starting folders, then commits, creates the GitHub repository, pushes, and creates a conda environment with the project's name. Use whenever the user wants to start, init, bootstrap or scaffold a new project or repo, or says "new project", even if they do not mention GitHub or the docs. Not for adding files to an existing project.
 ---
 
 # Project init
@@ -47,14 +47,17 @@ To change what new projects get, edit `assets/`, not this file.
 
    Plain `python` on this machine can be the Microsoft Store stub. If it fails, use
    `C:\Users\aa186095\AppData\Local\miniconda3\python.exe`. Options: `--public`, `--no-github`
-   (local repository only), `--remote-url <url>` (push to a repository that already exists).
+   (local repository only), `--remote-url <url>` (push to a repository that already exists),
+   `--no-conda` (no conda environment).
 
    The script: (1) checks the name, that the folder is empty (apart from `.git`, `.claude`,
-   `.vscode`), git and its identity, the `gh` login, and that no GitHub repository has that name;
-   (2) runs `git init -b main` unless the folder is already a repository with no commits;
-   (3) runs `build_instance.py`, which keeps any file that already exists; (4) commits;
-   (5) runs `gh repo create` unless `origin` already exists, then pushes `main`. The first commit
-   holds the whole scaffold, so the push is never empty.
+   `.vscode`), git and its identity, the `gh` login, that no GitHub repository has that name, and
+   that conda is installed; (2) runs `git init -b main` unless the folder is already a repository
+   with no commits; (3) runs `build_instance.py`, which keeps any file that already exists;
+   (4) commits; (5) runs `gh repo create` unless `origin` already exists, then pushes `main`;
+   (6) runs `conda create -n <name> python=3.12` unless that environment already exists. The first
+   commit holds the whole scaffold, so the push is never empty. `.vscode/settings.json` makes cmd
+   the default VS Code terminal, and each new terminal runs `conda activate <name>`.
 
 3. **If it fails**, show the error as printed and give the fix. Do not delete anything.
    - `gh` is missing or not logged in: ask the user to run `winget install GitHub.cli` and then
@@ -63,15 +66,21 @@ To change what new projects get, edit `assets/`, not this file.
      new project. Ask the user to use an empty folder.
    - The push failed after the repository was created: the project is committed locally. Fix the
      cause, then run `git push -u origin main` in the project folder.
+   - conda is missing: ask the user to install Miniconda, or rerun with `--no-conda`.
+   - `conda create` failed: the project is set up and pushed. Give the user the command the error
+     prints.
    - Anything else: the script says what to change. Rerun with the corrected input.
 
 4. **Report**: the repository URL and the next steps:
    - **Start a new Claude Code session in this folder.** `CLAUDE.md`, the rules, and
      `.claude/settings.json` were created after this session started, so they load only in a new one.
-     VS Code will also offer the recommended extensions.
-   - Python: create the conda environment named in the README Setup, install `pytest`,
-     `pytest-cov`, `mypy`, `ruff` and `python-dotenv`, and pin their versions in `requirements.txt`.
-     The scaffold leaves it empty on purpose, because it does not invent versions.
+     If Claude Code asks whether to trust the folder, say yes: until then it ignores the `allow`
+     rules. VS Code will also offer the recommended extensions.
+   - Open a new VS Code terminal: it is cmd, with the project's conda environment active. If it
+     says `conda` is not recognized, run `conda init cmd.exe` once and open a new terminal.
+   - Python: in that terminal, install `pytest`, `pytest-cov`, `mypy`, `ruff` and
+     `python-dotenv`, and pin their versions in `requirements.txt`. The scaffold leaves it empty on
+     purpose, because it does not invent versions.
    - Write the first ideas in `docs/inbox.md`, then follow `docs/workflow.md`.
    - Review the **Project** section of the new `CLAUDE.md` and the layout table in `docs/design.md`.
 

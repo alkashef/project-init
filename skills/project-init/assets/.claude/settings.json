@@ -8,7 +8,14 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",
-      "Bash(python scripts/cleanup.py *)"
+      "Bash(python scripts/cleanup.py *)",
+      "PowerShell(git status *)",
+      "PowerShell(git diff *)",
+      "PowerShell(git log *)",
+      "PowerShell(git add *)",
+      "PowerShell(git commit *)",
+      "PowerShell(git push *)",
+      "PowerShell(python scripts/cleanup.py *)"
     ],
     "ask": [
       "Edit(/docs/spec.md)",
@@ -20,10 +27,21 @@
       "Bash(rm -rf *)",
       "Bash(rm -fr *)",
       "Bash(rm -r *)",
-      "PowerShell(Remove-Item *-Recurse*)",
       "Bash(kill *)",
       "Bash(pkill *)",
       "Bash(taskkill *)",
+      "PowerShell(pip install *)",
+      "PowerShell(npm install *)",
+      "PowerShell(conda install *)",
+      "PowerShell(rm -rf *)",
+      "PowerShell(rm -fr *)",
+      "PowerShell(rm -r *)",
+      "PowerShell(rm *-r*)",
+      "PowerShell(del *-r*)",
+      "PowerShell(Remove-Item *-Recurse*)",
+      "PowerShell(kill *)",
+      "PowerShell(pkill *)",
+      "PowerShell(taskkill *)",
       "PowerShell(Stop-Process *)"
     ],
     "deny": [
@@ -39,7 +57,20 @@
       "Bash(docker volume prune *)",
       "Bash(docker compose down *-v*)",
       "Bash(docker-compose down *-v*)",
-      "Bash(docker system prune *)"
+      "Bash(docker system prune *)",
+      "PowerShell(git push *--force*)",
+      "PowerShell(git push -f *)",
+      "PowerShell(git push *-f)",
+      "PowerShell(git reset *--hard*)",
+      "PowerShell(git clean *)",
+      "PowerShell(git restore *)",
+      "PowerShell(git checkout -- *)",
+      "PowerShell(git checkout .)",
+      "PowerShell(docker volume rm *)",
+      "PowerShell(docker volume prune *)",
+      "PowerShell(docker compose down *-v*)",
+      "PowerShell(docker-compose down *-v*)",
+      "PowerShell(docker system prune *)"
     ]
   }
 }

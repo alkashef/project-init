@@ -84,7 +84,6 @@ def template_files() -> dict[str, list[str]]:
             ".claude/settings.json",
             ".gitignore",
             ".vscode/extensions.json",
-            ".vscode/settings.json",
             "config/.env.example",
             "docs/workflow.md",
             "scripts/cleanup.py",
@@ -96,8 +95,15 @@ def template_files() -> dict[str, list[str]]:
 
 
 def rendered_templates() -> list[str]:
-    """Return the asset files that get their {{placeholders}} filled (README and docs)."""
-    return ["README.md", "docs/inbox.md", "docs/spec.md", "docs/design.md", "docs/plan.md"]
+    """Return the asset files that get their {{placeholders}} filled (README, docs, VS Code)."""
+    return [
+        "README.md",
+        "docs/inbox.md",
+        "docs/spec.md",
+        "docs/design.md",
+        "docs/plan.md",
+        ".vscode/settings.json",
+    ]
 
 
 def always_folders() -> dict[str, str]:
