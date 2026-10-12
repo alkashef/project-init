@@ -2,8 +2,9 @@
 
 Writes CLAUDE.md (the always-loaded sections), `.claude/rules/*.md` (the path-scoped sections),
 README.md, the docs, the starting folders, and every other file the project receives, all from
-the skill's `assets/` folder. Does NOT edit the master. Never overwrites an existing file unless
---force is given. The project name is the name of the TARGET folder unless --name is given.
+the skill's `assets/` folder. `.vscode/extensions.json` is built from the modules instead. Does
+NOT edit the master. Never overwrites an existing file unless --force is given. The project name
+is the name of the TARGET folder unless --name is given.
 
 Usage:
     python build_instance.py TARGET --with python http-apis validation --purpose "Does X"
@@ -11,6 +12,7 @@ Usage:
 """
 
 import argparse
+import json
 import re
 import shutil
 from dataclasses import dataclass
@@ -83,7 +85,6 @@ def template_files() -> dict[str, list[str]]:
         "always": [
             ".claude/settings.json",
             ".gitignore",
-            ".vscode/extensions.json",
             "config/.env.example",
             "docs/workflow.md",
             "scripts/cleanup.py",
@@ -104,6 +105,25 @@ def rendered_templates() -> list[str]:
         "docs/plan.md",
         ".vscode/settings.json",
     ]
+
+
+def extension_ids() -> dict[str, list[str]]:
+    """Map a flag ('always' or a --with flag) to the VS Code extensions it recommends."""
+    return {
+        "always": ["usernamehw.errorlens", "sonarsource.sonarlint-vscode"],
+        "python": ["ms-python.python", "charliermarsh.ruff", "ms-python.mypy-type-checker"],
+        "javascript": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
+        "html-css": ["esbenp.prettier-vscode", "stylelint.vscode-stylelint"],
+        "ui-design": ["esbenp.prettier-vscode", "stylelint.vscode-stylelint"],
+    }
+
+
+def extensions_json(flags: list[str]) -> str:
+    """Render `.vscode/extensions.json`: the modules' extensions, then the ones for all projects."""
+    ids: list[str] = []
+    for key in [*flags, "always"]:
+        ids += [i for i in extension_ids().get(key, []) if i not in ids]
+    return json.dumps({"recommendations": ids}, indent=2) + "\n"
 
 
 def always_folders() -> dict[str, str]:
@@ -356,6 +376,7 @@ def main() -> int:
     assets = assets_dir()
     sections = select_sections(read_sections(assets / "CLAUDE_GOLDEN.md"), args.flags)
     outputs = plan_outputs(assets, args.target, sections, fills_from(args))
+    outputs[args.target / ".vscode" / "extensions.json"] = extensions_json(args.flags)
     copies = plan_copies(assets, args.target, args.flags)
     for path, text in outputs.items():
         print(f"{write_text(path, text, args.force, args.dry_run):18} {path}")

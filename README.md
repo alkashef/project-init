@@ -41,7 +41,7 @@ tool's config, where it is enforced on every run, and `CLAUDE.md` keeps only wha
 | `.gitignore` | Ignores secrets (`config/.env`), data, models, logs, caches, `node_modules`, local settings. | Secrets and large or generated files never reach GitHub. |
 | `config/.env.example` | The list of settings, with secrets left empty. | Copied to `config/.env`, which is never committed, so settings live in one place and secrets stay out of the code. |
 | `.vscode/settings.json` | Format on save, UTF-8, LF line endings, ruff for Python, Prettier and ESLint fixes for JavaScript, mypy with `mypy.ini`, pytest in `tests/`. The default terminal is cmd, and each new terminal runs `conda activate <project name>`. | The editor applies the same checks as the command line while you type, and every terminal starts in the project's environment, so nothing is installed into `base` by mistake. |
-| `.vscode/extensions.json` | Recommends Python, Ruff, Mypy, ESLint, Prettier, Stylelint, Error Lens and SonarLint. | VS Code offers to install them when the project opens. |
+| `.vscode/extensions.json` | Recommends extensions for the modules you chose: Python, Ruff and Mypy with `python`; ESLint and Prettier with `javascript`; Prettier and Stylelint with `html-css` or `ui-design`. Error Lens and SonarLint for every project. Built by `build_instance.py`, not copied. | VS Code offers to install them when the project opens; nothing installs them without your click. A project gets only the extensions its files use. |
 | `scripts/cleanup.py` | Deletes caches and generated files (`__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, coverage, logs). Never source, data or environments. `--dry-run` lists only. | One safe command Claude may run without asking. |
 | `src/`, `tests/unit/`, `tests/e2e/` | Empty starting folders (each holds a `.gitkeep`). | Every project has the same layout, which the rules and configs assume. |
 
@@ -277,7 +277,9 @@ config, GitHub account and conda environments are never touched.
   into `CLAUDE.md` or a rules file; every `Bash(...)` permission rule has a `PowerShell(...)` twin.
 - `test_build_instance.py`: which files each build writes, no `{{placeholders}}` left, rules files
   start with `paths:`, `--dry-run` writes nothing, a second run keeps existing files, `--force`
-  overwrites, an unknown module is refused, and `CLAUDE.md` has fewer than 200 lines (see "The line budget").
+  overwrites, an unknown module is refused, the recommended extensions follow the modules (a
+  Python-only project gets no ESLint, Prettier or Stylelint), and `CLAUDE.md` has fewer than 200
+  lines (see "The line budget").
 - `test_init_project.py`: a run commits once on `main` and pushes; the repository is created
   private (or `--public`) with the purpose; `--no-github`, `--remote-url`, an existing empty
   repository and an existing `origin` work without calling `gh`; a failed push says how to finish;

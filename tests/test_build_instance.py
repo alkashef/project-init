@@ -69,6 +69,34 @@ def test_vscode_terminal_is_cmd_with_the_conda_environment(tmp_path: Path) -> No
     assert profile["args"] == ["/K", "conda activate my-app"]
 
 
+def recommended(folder: Path) -> list[str]:
+    """Return the extension IDs a built project's `.vscode/extensions.json` recommends."""
+    text = (folder / ".vscode" / "extensions.json").read_text(encoding="utf-8")
+    return list(json.loads(text)["recommendations"])
+
+
+def test_python_build_recommends_only_python_extensions(tmp_path: Path) -> None:
+    build(tmp_path, "--with", "python")
+    extensions = recommended(tmp_path)
+    assert "charliermarsh.ruff" in extensions
+    assert "usernamehw.errorlens" in extensions
+    web = ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "stylelint.vscode-stylelint"]
+    assert [e for e in web if e in extensions] == []
+
+
+def test_web_build_recommends_web_extensions_once(tmp_path: Path) -> None:
+    build(tmp_path, "--with", "javascript", "html-css", "ui-design")
+    extensions = recommended(tmp_path)
+    assert "dbaeumer.vscode-eslint" in extensions
+    assert "stylelint.vscode-stylelint" in extensions
+    assert "charliermarsh.ruff" not in extensions
+    assert len(extensions) == len(set(extensions))
+
+
+def test_every_extension_key_is_a_module() -> None:
+    assert set(bi.extension_ids()) - {"always", *bi.optional_flags()} == set()
+
+
 def test_claude_md_fits_the_line_budget(full_build: Path) -> None:
     # CLAUDE.md loads in every session, and Anthropic advises keeping it under 200 lines. Every
     # line counts, blank ones too, because that is what the advice measures. Only CLAUDE.md is
