@@ -1,0 +1,830 @@
+"""
+scripts/milestones-runner.py
+
+Runs the milestones of docs/plan.md one after another, each in its own unattended
+`claude -p` session (the loop of docs/workflow.md): the table parsing, the checks before and after
+each milestone, the claude flags, the prompt text, the stop conditions and the log paths,
+with a live status line, a timing for each milestone (.claude/logs/timings.csv) and a
+summary table.
+Does NOT edit the plan, the code or git: the claude session does that.
+
+Run, after `conda activate pinkman`:
+    python scripts/milestones-runner.py [--start N] [--end N]
+"""
+
+import argparse
+import csv
+import ctypes
+import io
+import re
+import shutil
+import subprocess
+import sys
+import threading
+import time
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
+from pathlib import Path
+from types import TracebackType
+from typing import Final, NoReturn, Self
+
+# The rules of a run (docs/workflow.md) and the width of the bar after each milestone.
+VALID_MODELS: Final = ("haiku", "sonnet", "opus")
+VALID_EFFORTS: Final = ("low", "medium", "high")
+IGNORE_ENTRIES: Final = (".claude/logs/", ".claude/blocked.md")
+BAR_WIDTH: Final = 40
+TAIL_LINES: Final = 30
+# Added here for the live status line.
+LIVE_BAR_WIDTH: Final = 10  # keeps the line within 79 columns, so an 80-column console does not wrap it
+REFRESH_SECONDS: Final = 1.0
+OUTCOME_DONE: Final = "done"
+OUTCOME_FAILED: Final = "failed"
+OUTCOME_BLOCKED: Final = "blocked"
+
+
+@dataclass(frozen=True)
+class Row:
+    """One row of the table "Milestones at a glance" (model, effort and status in lower case)."""
+
+    id: int
+    title: str
+    model: str
+    effort: str
+    status: str
+
+
+@dataclass(frozen=True)
+class Result:
+    """How one milestone of this run ended (outcome: done, failed or blocked)."""
+
+    id: int
+    title: str
+    model: str
+    effort: str
+    started_at: str
+    seconds: float
+    outcome: str
+
+
+@dataclass(frozen=True)
+class Progress:
+    """Everything the live status line shows, at one moment."""
+
+    done: int
+    total: int
+    row_id: int
+    model: str
+    effort: str
+    milestone_seconds: float
+    total_seconds: float
+    finished_seconds: tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class Options:
+    """The command-line arguments. A start or end of None means the whole table."""
+
+    start: int | None
+    end: int | None
+
+
+@dataclass(frozen=True)
+class Paths:
+    """The files the runner reads and writes, below the repository root."""
+
+    root: Path
+
+    @property
+    def plan(self) -> Path:
+        """docs/plan.md."""
+        return self.root / "docs" / "plan.md"
+
+    @property
+    def log_dir(self) -> Path:
+        """.claude/logs, with one log per milestone."""
+        return self.root / ".claude" / "logs"
+
+    @property
+    def blocked(self) -> Path:
+        """.claude/blocked.md, written by a milestone that had to stop."""
+        return self.root / ".claude" / "blocked.md"
+
+    @property
+    def gitignore(self) -> Path:
+        """.gitignore."""
+        return self.root / ".gitignore"
+
+    @property
+    def timings(self) -> Path:
+        """.claude/logs/timings.csv."""
+        return self.log_dir / "timings.csv"
+
+
+@dataclass(frozen=True)
+class ClaudeRun:
+    """The output lines and the exit code of one `claude -p` run."""
+
+    lines: list[str]
+    exit_code: int
+
+
+@dataclass(frozen=True)
+class Verdict:
+    """The judgement of a finished run: its outcome and, for a failure, the reason."""
+
+    outcome: str
+    reason: str
+
+
+class RunStopped(Exception):
+    """The run must stop. main() prints the message and the detail lines, then the summary."""
+
+    def __init__(self, message: str, details: Sequence[str] = (), color: str = "red") -> None:
+        """Keep the first line, the lines under it, and the color of the first line."""
+        super().__init__(message)
+        self.message = message
+        self.details = tuple(details)
+        self.color = color
+
+
+class Stopwatch:
+    """Counts the seconds since it was made."""
+
+    def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
+        """Start counting now. A test passes its own clock."""
+        self._clock = clock
+        self._start = clock()
+
+    def elapsed(self) -> float:
+        """Return the seconds counted so far."""
+        return self._clock() - self._start
+
+
+@dataclass
+class RunState:
+    """What this run has done so far: the milestones to run, the total timer and the results."""
+
+    total: int
+    stopwatch: Stopwatch
+    results: list[Result] = field(default_factory=list)
+
+    def progress(self, row: Row, milestone: Stopwatch) -> Progress:
+        """Return the numbers for the live status line while `row` runs."""
+        return Progress(
+            done=len(self.results), total=self.total, row_id=row.id, model=row.model, effort=row.effort,
+            milestone_seconds=milestone.elapsed(), total_seconds=self.stopwatch.elapsed(),
+            finished_seconds=tuple(result.seconds for result in self.results),
+        )
+
+
+@dataclass(frozen=True)
+class Console:
+    """Prints to the terminal: ANSI colors when use_color is True, plain text when it is False."""
+
+    use_color: bool
+
+    def paint(self, text: str, color: str) -> str:
+        """Return the text in "green", "yellow" or "red"; unchanged when colors are off."""
+        if not self.use_color:
+            return text
+        code = {"green": "32", "yellow": "33", "red": "31"}[color]
+        return f"\x1b[{code}m{text}\x1b[0m"
+
+    def say(self, text: str = "", color: str | None = None) -> None:
+        """Print one permanent line."""
+        print(text if color is None else self.paint(text, color), flush=True)
+
+    def overwrite(self, text: str, color: str) -> None:
+        """Replace the current terminal line with the text, cut to the width of the terminal."""
+        width = shutil.get_terminal_size().columns - 1
+        sys.stdout.write(self._erase(width) + self.paint(text[:width], color))
+        sys.stdout.flush()
+
+    def clear_line(self) -> None:
+        """Erase the current terminal line and put the cursor at its start."""
+        sys.stdout.write(self._erase(shutil.get_terminal_size().columns - 1))
+        sys.stdout.flush()
+
+    def _erase(self, width: int) -> str:
+        """Return the characters that clear the current line."""
+        if self.use_color:
+            return "\r\x1b[2K"
+        return "\r" + " " * width + "\r"
+
+
+@dataclass(frozen=True)
+class Session:
+    """Everything one run needs: the files, the terminal, the state and the range."""
+
+    paths: Paths
+    console: Console
+    state: RunState
+    first: int
+    last: int
+
+
+class LiveStatus:
+    """Redraws one status line every second from a thread. Use it in a `with` block."""
+
+    def __init__(self, console: Console, render: Callable[[], str]) -> None:
+        """Keep the console and the function that returns the text of the line."""
+        self._console = console
+        self._render = render
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+
+    def __enter__(self) -> Self:
+        """Start the thread."""
+        self._thread.start()
+        return self
+
+    def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None,
+                 traceback: TracebackType | None) -> None:
+        """Stop the thread, also after an error, and erase the line."""
+        self._stop.set()
+        self._thread.join()
+        self._console.clear_line()
+
+    def _loop(self) -> None:
+        """Draw, then wait one second or until stop; repeat."""
+        while True:
+            self._console.overwrite(self._render(), "yellow")
+            if self._stop.wait(REFRESH_SECONDS):
+                return
+
+
+# --- reading the plan ----------------------------------------------------------------------------
+
+
+def _split_lines(text: str) -> list[str]:
+    """Split on \\r\\n, \\n or \\r only; str.splitlines would also split on form feeds and Unicode separators."""
+    return re.split(r"\r\n|\r|\n", text)
+
+
+def _read_lines(path: Path) -> list[str]:
+    """Return the lines of a UTF-8 file (a byte order mark is dropped)."""
+    return _split_lines(path.read_text(encoding="utf-8-sig"))
+
+
+def parse_row(line: str) -> Row | None:
+    """
+    Read one table row: | **M<n>** Title | Description | Model | Effort | Status |.
+
+    Args:
+        line: One line of the plan.
+
+    Returns:
+        The row, or None when the line is not a milestone row.
+    """
+    match = re.match(
+        r"^\|\s*\*\*M(?P<id>\d+)\*\*\s*(?P<title>[^|]*?)\s*\|\s*(?P<text>.*)\|\s*(?P<model>[^|]*?)\s*"
+        r"\|\s*(?P<effort>[^|]*?)\s*\|\s*(?P<status>[^|]*?)\s*\|\s*$",
+        line, re.IGNORECASE)
+    if match is None:
+        return None
+    return Row(id=int(match["id"]), title=match["title"].replace("**", "").strip(),
+               model=match["model"].strip().lower(), effort=match["effort"].strip().lower(),
+               status=match["status"].strip().lower())
+
+
+def parse_plan_rows(lines: Sequence[str]) -> list[Row]:
+    """
+    Return the rows of the table "Milestones at a glance", in the order of the file.
+
+    Args:
+        lines: The lines of docs/plan.md.
+
+    Returns:
+        The rows between that heading and the next heading of level 1 to 3.
+    """
+    rows: list[Row] = []
+    in_table = False
+    for line in lines:
+        if re.match(r"^## Milestones at a glance", line, re.IGNORECASE):
+            in_table = True
+        elif in_table and re.match(r"^#{1,3} ", line):
+            break
+        elif in_table:
+            row = parse_row(line)
+            if row is not None:
+                rows.append(row)
+    return rows
+
+
+def plan_has_row(lines: Sequence[str], milestone_id: int) -> bool:
+    """
+    Tell whether the table "Milestones at a glance" still has a row for the milestone.
+
+    A finished milestone leaves the table: its block and its row are deleted in its commit (docs/workflow.md).
+
+    Args:
+        lines: The lines of docs/plan.md.
+        milestone_id: The milestone number.
+
+    Returns:
+        True when the table has the row of that milestone.
+    """
+    return any(row.id == milestone_id for row in parse_plan_rows(lines))
+
+
+def rows_in_range(rows: Sequence[Row], first: int, last: int) -> list[Row]:
+    """Return the rows numbered first to last, in table order (not numeric order)."""
+    return [row for row in rows if first <= row.id <= last]
+
+
+def next_open_row(rows: Sequence[Row]) -> Row | None:
+    """Return the first row, in table order, whose status is not "done"."""
+    return next((row for row in rows if row.status != "done"), None)
+
+
+def resolve_range(rows: Sequence[Row], start: int | None, end: int | None) -> tuple[int, int]:
+    """Return the first and last milestone number; a missing start or end means the whole table."""
+    ids = [row.id for row in rows]
+    return (min(ids, default=0) if start is None else start,
+            max(ids, default=0) if end is None else end)
+
+
+def range_problem(first: int, last: int) -> str | None:
+    """Return why the range is refused (a start after the end), or None."""
+    if first > last:
+        return f"--start ({first}) is greater than --end ({last})."
+    return None
+
+
+def row_problem(row: Row) -> str | None:
+    """Return why the model or effort of the row cannot be used, or None."""
+    if not row.model or not row.effort:
+        return f"M{row.id} has no Model or no Effort in the table."
+    if row.model not in VALID_MODELS:
+        return f"M{row.id}: Model '{row.model}' is not haiku, sonnet or opus."
+    if row.effort not in VALID_EFFORTS:
+        return f"M{row.id}: Effort '{row.effort}' is not low, medium or high."
+    return None
+
+
+def build_prompt(row: Row) -> str:
+    """Return the text sent to claude for one milestone."""
+    text = " ".join((
+        "Implement only milestone M<n> (<title>) from docs/plan.md.",
+        "Follow its block, the loop in docs/workflow.md (step 4) and CLAUDE.md.",
+        "This is an unattended run: nobody can answer questions.",
+        "Rules:",
+        "(a) never edit docs/spec.md;",
+        "(b) in docs/plan.md, when the gate passes, delete the block of M<n> and its row in the table "
+        "\"Milestones at a glance\", and edit nothing else in the plan;",
+        "(c) do that edit before the commit so the commit includes it;",
+        "(d) the user asks for a commit and push per milestone: use the commit message from the milestone's Gate "
+        "line and run git push;",
+        "(e) a spec and a design that disagree, any need for a user decision, or any command that CLAUDE.md "
+        "'Destructive actions' forbids: stop without committing and write the reason to .claude/blocked.md;",
+        "(f) never print entry text, names or titles from user data;",
+        "(g) end with the CLAUDE.md section 12 report.",
+    ))
+    return text.replace("<n>", str(row.id)).replace("<title>", row.title)
+
+
+# --- arguments, environment and git --------------------------------------------------------------
+
+
+def parse_args(argv: Sequence[str] | None = None) -> Options:
+    """
+    Read the command line.
+
+    Args:
+        argv: The arguments; None means sys.argv.
+
+    Returns:
+        The options. Without --start and --end the whole table is run.
+    """
+    parser = argparse.ArgumentParser(description="Run the milestones of docs/plan.md, one claude session each.")
+    parser.add_argument("--start", type=int, default=None, help="first milestone number (default: the first row)")
+    parser.add_argument("--end", type=int, default=None, help="last milestone number (default: the last row)")
+    args = parser.parse_args(argv)
+    return Options(start=args.start, end=args.end)
+
+
+def in_pinkman_env(prefix: str) -> bool:
+    """Tell whether a Python prefix (sys.prefix) is the conda env "pinkman"."""
+    return Path(prefix).name.lower() == "pinkman"
+
+
+def missing_ignore_entries(existing: Sequence[str]) -> list[str]:
+    """Return the entries of IGNORE_ENTRIES that are not a line of .gitignore (case-insensitive)."""
+    known = {line.lower() for line in existing}
+    return [entry for entry in IGNORE_ENTRIES if entry.lower() not in known]
+
+
+def add_ignore_entries(gitignore: Path) -> bool:
+    """
+    Append the missing entries to .gitignore.
+
+    Args:
+        gitignore: The path of .gitignore.
+
+    Returns:
+        True when it had to add a line.
+    """
+    missing = missing_ignore_entries(_read_lines(gitignore) if gitignore.exists() else [])
+    if not missing:
+        return False
+    with gitignore.open("a", encoding="ascii") as handle:
+        handle.write("\n".join(missing) + "\n")
+    return True
+
+
+def _run(args: Sequence[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    """Run a command in the repository and return its result, or stop the run if it cannot start."""
+    try:
+        return subprocess.run(list(args), cwd=cwd, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise _error(f"`{args[0]}` could not run: {exc}") from exc
+
+
+def git_is_clean(root: Path) -> bool:
+    """Tell whether `git status --porcelain` succeeds and lists nothing."""
+    done = _run(["git", "status", "--porcelain"], root)
+    return done.returncode == 0 and not done.stdout.strip()
+
+
+def git_has_upstream(root: Path) -> bool:
+    """Tell whether the current branch has an upstream, so that git push works."""
+    done = _run(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], root)
+    return done.returncode == 0
+
+
+def git_has_unpushed(root: Path) -> bool:
+    """Tell whether HEAD has commits that are not on the upstream (True when git cannot tell)."""
+    done = _run(["git", "rev-list", "--count", "@{u}..HEAD"], root)
+    return done.returncode != 0 or int(done.stdout.strip() or "0") > 0
+
+
+def _error(message: str) -> RunStopped:
+    """Build the stop for a plain error: "ERROR: <message>" in red."""
+    return RunStopped(f"ERROR: {message}")
+
+
+def check_range(first: int, last: int) -> None:
+    """
+    Refuse a range whose start is after its end.
+
+    Args:
+        first: The first milestone number.
+        last: The last milestone number.
+
+    Raises:
+        RunStopped: If the range is refused.
+    """
+    problem = range_problem(first, last)
+    if problem is not None:
+        raise _error(problem)
+
+
+def preflight(paths: Paths) -> None:
+    """
+    Check the environment before the first milestone.
+
+    Args:
+        paths: The repository files.
+
+    Raises:
+        RunStopped: If the conda env is wrong, git is not clean, the branch has no upstream,
+            or .gitignore had to be changed.
+    """
+    if not in_pinkman_env(sys.prefix):
+        raise _error(f"Python runs from '{sys.prefix}', not from the conda env 'pinkman'. "
+                     "Run 'conda activate pinkman' first.")
+    if not git_is_clean(paths.root):
+        raise _error("git status is not clean. Commit or stash your changes first.")
+    if not git_has_upstream(paths.root):
+        raise _error("The current branch has no upstream, so git push cannot work. "
+                     "Set one with: git push -u origin <branch>")
+    if add_ignore_entries(paths.gitignore):
+        raise _error(f".gitignore was missing {', '.join(IGNORE_ENTRIES)}; the lines are added now. "
+                     "Commit .gitignore, then run again.")
+
+
+# --- time and display ----------------------------------------------------------------------------
+
+
+def format_duration(seconds: float) -> str:
+    """Return mm:ss, or h:mm:ss from one hour on (the seconds are cut, not rounded)."""
+    hours, rest = divmod(int(seconds), 3600)
+    minutes, secs = divmod(rest, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{secs:02d}"
+    return f"{minutes:02d}:{secs:02d}"
+
+
+def bar_text(done: int, total: int, width: int, fill: str, empty: str) -> str:
+    """Return a bar of `width` characters, filled by the share done/total (rounded down)."""
+    filled = min(width * done // total, width) if total > 0 else 0
+    return fill * filled + empty * (width - filled)
+
+
+def percent(done: int, total: int) -> int:
+    """Return 100 * done / total, rounded (0 when total is 0)."""
+    return round(100 * done / total) if total > 0 else 0
+
+
+def eta_text(finished_seconds: Sequence[float], left: int) -> str:
+    """Return "ETA mm:ss": the average time of the finished milestones times the milestones left."""
+    if not finished_seconds:
+        return "ETA --"
+    average = sum(finished_seconds) / len(finished_seconds)
+    return f"ETA {format_duration(average * left)}"
+
+
+def status_text(progress: Progress) -> str:
+    """Return the live status line (without colors) for one moment of the run."""
+    bar = bar_text(progress.done, progress.total, LIVE_BAR_WIDTH, "█", "░")
+    return " | ".join((
+        f"{bar} {percent(progress.done, progress.total)}% {progress.done}/{progress.total}",
+        f"M{progress.row_id} {progress.model}/{progress.effort}",
+        f"this {format_duration(progress.milestone_seconds)}",
+        f"total {format_duration(progress.total_seconds)}",
+        eta_text(progress.finished_seconds, progress.total - progress.done),
+    ))
+
+
+def outcome_color(outcome: str) -> str:
+    """Return green for done, yellow for blocked and red for failed."""
+    return {OUTCOME_DONE: "green", OUTCOME_BLOCKED: "yellow"}.get(outcome, "red")
+
+
+def result_line(result: Result) -> str:
+    """Return the permanent line of a finished milestone."""
+    return " | ".join((f"M{result.id} {result.title}", result.model, result.effort,
+                       format_duration(result.seconds), result.outcome))
+
+
+def _table_lines(results: Sequence[Result], console: Console) -> list[str]:
+    """Return the aligned table of the milestones of this run, each row in the color of its outcome."""
+    header = ("ID", "Model", "Effort", "Duration", "Result")
+    cells = [(f"M{r.id}", r.model, r.effort, format_duration(r.seconds), r.outcome) for r in results]
+    widths = [max(len(cell) for cell in column) for column in zip(header, *cells)]
+    lines = ["  ".join(cell.ljust(width) for cell, width in zip(row, widths)).rstrip() for row in (header, *cells)]
+    return [lines[0]] + [console.paint(line, outcome_color(r.outcome)) for line, r in zip(lines[1:], results)]
+
+
+def summary_lines(results: Sequence[Result], total_seconds: float, console: Console = Console(False)) -> list[str]:
+    """
+    Return the summary of the run: a table, the total time, the average and the slowest milestone.
+
+    Args:
+        results: The milestones that ran, in order.
+        total_seconds: The total time of the run.
+        console: Paints the rows of the table (the default adds no colors).
+
+    Returns:
+        The lines to print; an empty list when no milestone ran.
+    """
+    if not results:
+        return []
+    slowest = max(results, key=lambda result: result.seconds)
+    average = sum(result.seconds for result in results) / len(results)
+    return ["Summary", *_table_lines(results, console),
+            f"Total time: {format_duration(total_seconds)}",
+            f"Average: {format_duration(average)}",
+            f"Slowest: M{slowest.id} ({format_duration(slowest.seconds)})"]
+
+
+def print_summary(console: Console, state: RunState) -> None:
+    """Print the summary of the run, if any milestone ran."""
+    lines = summary_lines(state.results, state.stopwatch.elapsed(), console)
+    if lines:
+        console.say()
+        for line in lines:
+            console.say(line)
+
+
+def enable_ansi() -> bool:
+    """
+    Turn on ANSI colors in the console.
+
+    Returns:
+        True when colors work; False when output is not a terminal or Windows refuses.
+    """
+    if not sys.stdout.isatty():
+        return False
+    if sys.platform != "win32":
+        return True
+    stdout_handle, virtual_terminal = -11, 0x0004
+    try:
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.GetStdHandle(stdout_handle)
+        mode = ctypes.c_ulong()
+        if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        return bool(kernel32.SetConsoleMode(handle, mode.value | virtual_terminal))
+    except (AttributeError, OSError):
+        return False
+
+
+def start_console() -> Console:
+    """Switch standard output to UTF-8 and return a Console with colors if they work."""
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        sys.stdout.reconfigure(encoding="utf-8")
+    return Console(use_color=enable_ansi())
+
+
+# --- running a milestone -------------------------------------------------------------------------
+
+
+def run_claude(paths: Paths, row: Row) -> ClaudeRun:
+    """
+    Run one milestone in `claude -p` and save the full output to .claude/logs/M<n>.log.
+
+    Args:
+        paths: The repository files.
+        row: The milestone; its model and effort go to claude.
+
+    Returns:
+        The output lines (standard output and error together) and the exit code.
+
+    Raises:
+        RunStopped: If the claude program cannot be found or started.
+    """
+    paths.blocked.unlink(missing_ok=True)
+    paths.log_dir.mkdir(parents=True, exist_ok=True)
+    program = shutil.which("claude") or "claude"
+    command = [program, "-p", "--model", row.model, "--effort", row.effort, "--permission-mode", "bypassPermissions"]
+    try:
+        done = subprocess.run(command, cwd=paths.root, input=build_prompt(row), stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise _error(f"claude could not run: {exc}") from exc
+    text = done.stdout.rstrip("\r\n")
+    lines = _split_lines(text) if text else []
+    (paths.log_dir / f"M{row.id}.log").write_text("".join(f"{line}\n" for line in lines), encoding="utf-8")
+    return ClaudeRun(lines, done.returncode)
+
+
+def failure_reason(paths: Paths, row: Row, run: ClaudeRun) -> str | None:
+    """Return why a finished run does not count as done, or None when every check passes."""
+    if plan_has_row(_read_lines(paths.plan), row.id):
+        return f"its row is still in the plan table, so the commit that finishes it was not made (claude exit code {run.exit_code})."
+    if not git_is_clean(paths.root):
+        return "git status is not clean."
+    if git_has_unpushed(paths.root):
+        return "there are commits that were not pushed."
+    return None
+
+
+def judge(paths: Paths, row: Row, run: ClaudeRun) -> Verdict:
+    """Return done, blocked (.claude/blocked.md exists) or failed (with the reason) for a finished run."""
+    if paths.blocked.exists():
+        return Verdict(OUTCOME_BLOCKED, "")
+    reason = failure_reason(paths, row, run)
+    return Verdict(OUTCOME_DONE, "") if reason is None else Verdict(OUTCOME_FAILED, reason)
+
+
+def stop_for(paths: Paths, row: Row, verdict: Verdict, run: ClaudeRun) -> NoReturn:
+    """
+    Stop the run because the milestone did not finish.
+
+    Raises:
+        RunStopped: Always. It carries the blocked text, or the reason and the last lines of output.
+    """
+    if verdict.outcome == OUTCOME_BLOCKED:
+        raise RunStopped(f"M{row.id} is blocked:", _read_lines(paths.blocked), "yellow")
+    intro = f"Last {TAIL_LINES} lines of output (full log: .claude\\logs\\M{row.id}.log):"
+    raise RunStopped(f"M{row.id} stopped: {verdict.reason}", [intro, *run.lines[-TAIL_LINES:]])
+
+
+def append_timing(path: Path, result: Result) -> None:
+    """Append a row (ID, model, effort, start, seconds, result) to the CSV; write the header for a new file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    is_new = not path.exists()
+    with path.open("a", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        if is_new:
+            writer.writerow(["id", "model", "effort", "start", "seconds", "result"])
+        writer.writerow([f"M{result.id}", result.model, result.effort, result.started_at,
+                         f"{result.seconds:.1f}", result.outcome])
+
+
+def record_result(session: Session, result: Result) -> None:
+    """Keep the result, add it to timings.csv (a failure to write it is only a warning) and print its line."""
+    session.state.results.append(result)
+    try:
+        append_timing(session.paths.timings, result)
+    except OSError as exc:
+        session.console.say(f"WARNING: could not write {session.paths.timings}: {exc}", "yellow")
+    session.console.say(result_line(result), outcome_color(result.outcome))
+
+
+def show_range_progress(session: Session, row: Row, run: ClaudeRun) -> None:
+    """Print a bar of the milestones done in this run, and the last TLDR line of the output."""
+    done, total = len(session.state.results), session.state.total
+    bar = bar_text(done, total, BAR_WIDTH, "|", "_")
+    session.console.say(f"M{row.id}/M{session.last} [{bar}] {percent(done, total)}%", "green")
+    tldr = next((line for line in reversed(run.lines) if re.search("TLDR", line, re.IGNORECASE)), None)
+    if tldr is not None:
+        session.console.say(tldr)
+
+
+def prepare_milestone(row: Row) -> None:
+    """
+    Check what the milestone needs before claude starts.
+
+    Raises:
+        RunStopped: If its model or its effort cannot be used.
+    """
+    problem = row_problem(row)
+    if problem is not None:
+        raise _error(problem)
+
+
+def run_milestone(session: Session, row: Row) -> None:
+    """
+    Run one milestone with the live status line, time it, and check that it finished.
+
+    Raises:
+        RunStopped: If the milestone is blocked or did not finish.
+    """
+    session.console.say()
+    session.console.say(f"Starting M{row.id} | {row.model} | {row.effort}")
+    started_at = time.strftime("%Y-%m-%d %H:%M:%S")
+    watch = Stopwatch()
+    with LiveStatus(session.console, lambda: status_text(session.state.progress(row, watch))):
+        run = run_claude(session.paths, row)
+    seconds = watch.elapsed()
+    verdict = judge(session.paths, row, run)
+    record_result(session, Result(row.id, row.title, row.model, row.effort, started_at, seconds, verdict.outcome))
+    if verdict.outcome != OUTCOME_DONE:
+        stop_for(session.paths, row, verdict, run)
+    show_range_progress(session, row, run)
+
+
+def _range_rows(session: Session) -> list[Row]:
+    """Return the rows of the range as the plan has them now (a milestone edits its own status)."""
+    rows = parse_plan_rows(_read_lines(session.paths.plan))
+    return rows_in_range(rows, session.first, session.last)
+
+
+def run_all(options: Options, console: Console, paths: Paths, state: RunState) -> None:
+    """
+    Run every milestone of the range whose status is not done, in table order.
+
+    Args:
+        options: The command-line options.
+        console: The terminal.
+        paths: The repository files.
+        state: Filled in as milestones finish; main() prints the summary from it.
+
+    Raises:
+        RunStopped: At the first problem. Nothing is retried.
+    """
+    rows = parse_plan_rows(_read_lines(paths.plan))
+    first, last = resolve_range(rows, options.start, options.end)
+    check_range(first, last)
+    preflight(paths)
+    state.total = sum(1 for row in rows_in_range(rows, first, last) if row.status != "done")
+    session = Session(paths, console, state, first, last)
+    while True:
+        row = next_open_row(_range_rows(session))
+        if row is None:
+            console.say(f"Range M{first} to M{last} is done.", "green")
+            return
+        prepare_milestone(row)
+        run_milestone(session, row)
+
+
+def run_guarded(options: Options, console: Console, paths: Paths, state: RunState) -> int:
+    """Run the range; print a stop or an interrupt instead of a traceback. Return the exit code."""
+    try:
+        run_all(options, console, paths, state)
+    except RunStopped as stop:
+        console.say(stop.message, stop.color)
+        for line in stop.details:
+            console.say(line)
+        return 1
+    except KeyboardInterrupt:
+        console.say("Interrupted.", "yellow")
+        return 130
+    return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """
+    Run the milestones and print the summary, also when the run stops early.
+
+    Args:
+        argv: The command-line arguments; None means sys.argv.
+
+    Returns:
+        0 when the range is done, 1 when a milestone stopped the run, 130 after Ctrl+C.
+    """
+    options = parse_args(argv)
+    console = start_console()
+    paths = Paths(Path(__file__).resolve().parent.parent)
+    state = RunState(total=0, stopwatch=Stopwatch())
+    try:
+        return run_guarded(options, console, paths, state)
+    finally:
+        print_summary(console, state)  # also after an unexpected error
+
+
+if __name__ == "__main__":
+    sys.exit(main())
