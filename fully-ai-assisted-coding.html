@@ -33,16 +33,23 @@
     line-height: 1.45;
   }
 
+  /* One slide is exactly one screen: no vertical scrolling. A slide taller than the screen is
+     zoomed down by the script (--fit) until it fits. */
   section {
     scroll-snap-align: start;
-    min-height: 100vh;
-    padding: clamp(28px, 6vw, 72px) clamp(16px, 7vw, 96px) 88px;
+    height: 100vh;
+    overflow: hidden;
+    padding: clamp(20px, 4vh, 48px) clamp(16px, 5vw, 72px) 72px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: clamp(16px, 3vh, 28px);
+    gap: clamp(10px, 2vh, 22px);
     border-bottom: 1px solid var(--line);
   }
+
+  section > * { zoom: var(--fit, 1); }
+
+  section.measuring { justify-content: flex-start; }
 
   /* Title slide */
   .cover { background: linear-gradient(160deg, var(--blue-900), var(--blue-700)); color: #fff; }
@@ -240,22 +247,16 @@
 
   .lead { font-size: clamp(1rem, 1.7vw, 1.3rem); color: var(--muted); }
 
-  /* Slide 1: bullets and sub-bullets, no boxes */
-  .points { list-style: disc; padding-left: 1.2em; }
+  /* Slide 2: classic answer vs the age of AI */
+  #objective h1 { font-size: clamp(1.6rem, 3.6vw, 2.7rem); }
 
-  .points > li { margin-top: 12px; color: var(--blue-900); font-size: clamp(1.05rem, 1.7vw, 1.3rem); }
+  .ask { font-size: clamp(1.2rem, 2.2vw, 1.7rem); font-weight: 700; color: var(--blue-900); }
 
-  .points > li:first-child { margin-top: 0; }
+  .compare td:first-child { white-space: normal; width: 30%; }
 
-  .points ul { list-style: circle; padding-left: 1.3em; margin-top: 4px; }
+  .compare q { color: var(--ink); font-style: italic; }
 
-  .points ul li { margin-top: 4px; color: var(--muted); font-size: clamp(.92rem, 1.3vw, 1.05rem); }
-
-  .points ul li b { color: var(--blue-900); }
-
-  .points q { color: var(--ink); font-style: italic; }
-
-  .points cite { font-style: normal; font-size: .85em; color: var(--faint); }
+  .compare cite { font-style: normal; font-size: .85em; color: var(--faint); }
 
   .card {
     background: var(--card);
@@ -322,28 +323,26 @@
 
   .flow .arrow { align-self: center; color: var(--faint); font-size: 1.4rem; }
 
-  /* Slide 3: the workflow as a table */
+  /* Slide 3: plain bullets under the flow */
+  .bullets { list-style: disc; padding-left: 1.2em; }
+
+  .bullets > li { margin-top: 8px; color: var(--blue-900); font-size: clamp(1rem, 1.5vw, 1.2rem); }
+
+  .bullets ul { list-style: circle; padding-left: 1.3em; margin-top: 2px; }
+
+  .bullets q { color: var(--ink); font-style: italic; }
+
+  .bullets cite { font-style: normal; font-size: .85em; color: var(--faint); }
+
+  .bullets ul li { color: var(--muted); font-size: clamp(.92rem, 1.3vw, 1.05rem); }
+
+  /* Slide 4: the workflow as a table */
   td code {
     font-family: ui-monospace, Consolas, monospace;
     font-size: .85em;
     color: var(--muted);
     white-space: nowrap;
   }
-
-  .always {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 22px;
-    align-items: baseline;
-    font-size: .9rem;
-    color: var(--muted);
-    border-top: 1px solid var(--line);
-    padding-top: 12px;
-  }
-
-  .always b { color: var(--blue-700); text-transform: uppercase; font-size: .75rem; letter-spacing: .12em; }
-
-  .always i { font-style: normal; font-weight: 600; color: var(--blue-900); margin-right: 4px; }
 
   /* Slide 4: table */
   table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
@@ -397,7 +396,8 @@
     html { scroll-snap-type: none; }
     nav, .controls, .panel-toggle { display: none; }
     main { margin-left: 0; }
-    section { min-height: auto; page-break-after: always; border: 0; }
+    section { height: auto; overflow: visible; page-break-after: always; border: 0; }
+    section > * { zoom: 1; }
   }
 </style>
 </head>
@@ -411,8 +411,11 @@
     <li><a href="#cover" aria-current="true"><span>1</span>Title</a></li>
     <li><a href="#objective"><span>2</span>Objective</a></li>
     <li><a href="#documents"><span>3</span>The three documents</a></li>
-    <li><a href="#around"><span>4</span>The workflow</a></li>
-    <li><a href="#tools"><span>5</span>Tools, not prompts</a></li>
+    <li><a href="#benefits"><span>4</span>Why it works</a></li>
+    <li><a href="#skill"><span>5</span>The skill</a></li>
+    <li><a href="#get"><span>6</span>What you get</a></li>
+    <li><a href="#essentials"><span>7</span>High quality by default</a></li>
+    <li><a href="#tools"><span>8</span>Tools, not prompts</a></li>
   </ol>
   <p class="signature">Ahmad Alkashef &middot; September 2026</p>
 </nav>
@@ -420,7 +423,7 @@
 <div class="controls">
   <button type="button" id="back" aria-label="Previous slide" disabled>&larr; Back</button>
   <div class="progress" aria-hidden="true"><span></span></div>
-  <span class="count" id="count">1 / 5</span>
+  <span class="count" id="count">1 / 8</span>
   <button type="button" id="next" aria-label="Next slide">Next &rarr;</button>
 </div>
 
@@ -440,30 +443,43 @@
 <!-- 1. Objective -->
 <section id="objective">
   <div class="kicker">Objective</div>
-  <h1>A high-quality app, A to Z, zero line of code.</h1>
+  <h1>Develop an app,<br>without writing a single line of code.</h1>
 
-  <ul class="points">
-    <li>What does high-quality mean?
-      <ul>
-        <li>Code another human can read, understand and change. Code is read far more often than it is written.</li>
-        <li>Readable names, small functions, simple logic, tests that prove it, comments where the why is not obvious.</li>
-        <li>Systems thinking, and proper commit comments that tell the story.</li>
-        <li>A design that is easy to maintain, to change, over time.</li>
-      </ul>
-    </li>
-    <li>What does high-quality mean now?
-      <ul>
-        <li><b>The same answer, with a second reader.</b> The AI reads the code, the docs and the comments to know what to do. It changes code faster than anyone can re-read it, and every change lands on the last one.</li>
-        <li><b>Maintainability.</b> Small mistakes compound. At Basecamp, each vibe-coded PR looked fine alone; together they <q>destroyed the architecture of the system</q> <cite>(DHH)</cite>. Someone has to protect the architecture, and the code has to be easy to protect.</li>
-        <li><b>Simplicity.</b> <q>beautiful code is easier to understand, it is simpler, it is more malleable</q> <cite>(DHH)</cite>. That holds for the AI too: less to misread, fewer wrong guesses. <q>there is great payoff to writing systems that agents have an easier time dealing with</q> <cite>(DHH)</cite>.</li>
-        <li><b>Comments.</b> Every AI session starts with no memory. The code shows what it does; only a comment or a doc says why.</li>
-        <li><b>Systems thinking.</b> The AI writes the part; a person holds the whole: boundaries, data flow, how the pieces fit.</li>
-        <li><b>Still true:</b> correct, a test for every requirement; safe, no secrets in git, no destructive commands.</li>
-      </ul>
-    </li>
-  </ul>
+  <p class="lead">It is easy to build an app that looks good, fast. It is much harder to build one that survives the test of time and the natural elements. That takes systems thinking and experience in coding. The former is <b>slop</b>, the latter is <b>high quality</b>.</p>
 
-  <p class="lead">What is easy for a person to review is easy for an AI to change.</p>
+  <h2 class="ask">What does high-quality code mean?</h2>
+
+  <table class="compare">
+    <tr><th>The classic answer, for humans</th><th>In the age of AI, why it matters</th></tr>
+    <tr>
+      <td>Readable: clear names, small functions</td>
+      <td>The AI reads the code to know what to change. Less to misread, fewer wrong guesses. <q>beautiful code is easier to understand, it is simpler, it is more malleable</q> <cite>(DHH)</cite></td>
+    </tr>
+    <tr>
+      <td>Simple logic, no cleverness</td>
+      <td>Simple code is cheaper for the AI to work in. <q>there is great payoff to writing systems that agents have an easier time dealing with</q> <cite>(DHH)</cite></td>
+    </tr>
+    <tr>
+      <td>A design that is easy to maintain and change over time</td>
+      <td>The AI changes code faster than anyone can re-read it, and every change lands on the last one. At Basecamp, each vibe-coded PR looked fine alone; together they <q>destroyed the architecture of the system</q> <cite>(DHH)</cite></td>
+    </tr>
+    <tr>
+      <td>Comments where the why is not obvious</td>
+      <td>Every AI session starts with no memory. The code shows what it does; only a comment or a doc says why.</td>
+    </tr>
+    <tr>
+      <td>Systems thinking</td>
+      <td>The AI writes the part; a person holds the whole: boundaries, data flow, how the pieces fit.</td>
+    </tr>
+    <tr>
+      <td>Proper commit comments</td>
+      <td>Git tells the story. The history is the record of what changed and why, for the next person and the next AI session.</td>
+    </tr>
+    <tr>
+      <td>Tests that prove it works, and safe by default</td>
+      <td>The AI can break things quietly. A test for every requirement catches it; no secrets in git and no destructive commands limit the damage.</td>
+    </tr>
+  </table>
 </section>
 
 <!-- 2. The three main documents -->
@@ -492,65 +508,178 @@
     </div>
   </div>
 
-  <div class="split">
-    <div class="card"><h3>One fact, one file</h3><p>No copies to drift apart. Finished work leaves the plan.</p></div>
-    <div class="card"><h3>Works by hand too</h3><p>Any AI chat, or a person with a text editor. The method is the documents, not the tool.</p></div>
-  </div>
+  <ul class="bullets">
+    <li><b>One fact, one file</b>
+      <ul>
+        <li>No copies to drift apart.</li>
+        <li>Finished work leaves the plan.</li>
+      </ul>
+    </li>
+    <li><b>Works by hand too</b>
+      <ul>
+        <li>Any AI chat, or a person with a text editor.</li>
+        <li>The method is the documents, not the tool.</li>
+      </ul>
+    </li>
+  </ul>
 </section>
 
-<!-- 3. Around the documents -->
-<section id="around">
-  <div class="kicker">Around the documents</div>
-  <h2>The workflow, step by step</h2>
+<!-- 3b. Why it works -->
+<section id="benefits">
+  <div class="kicker">The benefits</div>
+  <h2>Why this workflow works</h2>
 
-  <table>
-    <tr><th>Step</th><th>What</th><th>Files</th><th>Why</th></tr>
-    <tr>
-      <td>Inbox</td>
-      <td>You drop ideas, in your words.</td>
-      <td><code>inbox.md</code></td>
-      <td>An idea is saved before it is lost. No format to get right.</td>
-    </tr>
-    <tr>
-      <td>Spec and design</td>
-      <td>The AI asks only what it cannot decide. You approve the spec.</td>
-      <td><code>spec.md</code>, <code>design.md</code></td>
-      <td>What and how are agreed before any code exists. The approved spec is the quality gate.</td>
-    </tr>
-    <tr>
-      <td>Plan</td>
-      <td>Milestones, one row each: tests, model, effort, status.</td>
-      <td><code>plan.md</code></td>
-      <td>Small steps the AI can finish in one session. Progress is visible at a glance.</td>
-    </tr>
-    <tr>
-      <td>Execute</td>
-      <td>One milestone at a time, each in a fresh AI session: tests first &rarr; see them fail &rarr; build &rarr; check &rarr; update docs &rarr; remove from plan &rarr; commit &amp; push.</td>
-      <td>milestone runner, hooks</td>
-      <td>A fresh session keeps the context small. Hooks run the checks, so nothing depends on the AI remembering.</td>
-    </tr>
-    <tr>
-      <td>Blocked</td>
-      <td>Needs your decision? The question goes in the plan. Nothing else changes.</td>
-      <td><code>plan.md</code></td>
-      <td>The AI never guesses at a decision that is yours. The question waits in the repo.</td>
-    </tr>
-    <tr>
-      <td>Approval</td>
-      <td>Your answer goes in the plan. Commit, run again.</td>
-      <td><code>plan.md</code></td>
-      <td>The decision is recorded, so the next run and the next reader know why.</td>
-    </tr>
-  </table>
+  <ul class="bullets">
+    <li><b>It protects the architecture</b>
+      <ul>
+        <li>At Basecamp, each vibe-coded PR looked fine alone; together they <q>destroyed the architecture of the system</q> <cite>(DHH)</cite>.</li>
+        <li>A human owns the spec and the design, so the AI builds inside a shape someone chose.</li>
+      </ul>
+    </li>
+    <li><b>Human judgment goes where it counts</b>
+      <ul>
+        <li>Agents are diligent: they write tests and check their work when told to.</li>
+        <li>Taste, and the experience to know which complexity will hurt in two years, stay human. The AI gets the large, easy-to-delegate part: implementation.</li>
+      </ul>
+    </li>
+    <li><b>Simple design pays twice</b>
+      <ul>
+        <li>Clean design was always cheaper to change. Now agents also work cheaper, and make fewer mistakes, in a system they can grasp.</li>
+      </ul>
+    </li>
+    <li><b>One fact, one file</b>
+      <ul>
+        <li>Plain text in the repo works for a person and for an agent. No tool or platform needed, and Git remembers the history.</li>
+      </ul>
+    </li>
+    <li><b>Small steps you can check</b>
+      <ul>
+        <li>Milestones with their own tests: you review a small diff against a stated intent. Mediocre work stacked on mediocre work turns into a ball of mud; small tested steps stop that from compounding.</li>
+      </ul>
+    </li>
+    <li><b>One warning: do not over-prescribe</b>
+      <ul>
+        <li>Keep the spec to what and why, and the design to the load-bearing decisions. An agent can be hurt by overly prescriptive instructions, and within a good frame it often knows best.</li>
+      </ul>
+    </li>
+  </ul>
+</section>
 
-  <div class="always">
-    <b>Always on</b>
-    <span><i>CLAUDE.md + rules</i> about 190 lines; topic rules load per file</span>
-    <span><i>Hooks</i> each edit: lint &amp; fix; each commit: all checks &amp; tests</span>
-    <span><i>Permissions</i> allow routine, ask risky, deny destructive</span>
+<!-- 4b. The skill -->
+<section id="skill">
+  <div class="kicker">From workflow to factory</div>
+  <h2>The workflow is provided as a skill</h2>
+  <p class="lead">One command turns an empty folder into a project that already works this way.</p>
+
+  <div class="flow">
+    <div class="step main">
+      <b>Empty folder</b><small>Start</small>
+      <p>A new project folder, open in VS Code.</p>
+    </div>
+    <div class="arrow">&rarr;</div>
+    <div class="step main gate">
+      <b>project-init</b><small>The skill</small>
+      <p>One command. Builds everything from the golden templates.</p>
+    </div>
+    <div class="arrow">&rarr;</div>
+    <div class="step main">
+      <b>A project ready to work</b><small>Result</small>
+      <p>Pushed to GitHub. Drop your first idea in the inbox.</p>
+    </div>
   </div>
 
-  <p class="note"><b>The skill</b> sets all of this up in one command: files, git, GitHub, environment, tools.</p>
+  <ul class="bullets">
+    <li><b>What the skill sets up</b>
+      <ul>
+        <li>CLAUDE.md with path-scoped rules; the docs: workflow, inbox, spec, design, plan; the README.</li>
+        <li>Tool configs, hooks, the milestone runner and the starting folders.</li>
+        <li>The first commit, the GitHub repository, the push, and a conda environment named after the project.</li>
+      </ul>
+    </li>
+    <li><b>Why a skill</b>
+      <ul>
+        <li>Every project starts with the same method and the same guardrails.</li>
+        <li>Improve the workflow once, and every new project gets it.</li>
+        <li>The method is a reusable asset, not something to explain again each time.</li>
+      </ul>
+    </li>
+  </ul>
+</section>
+
+<!-- 5. What you get from the skill -->
+<section id="get">
+  <div class="kicker">Inside a new project</div>
+  <h2>What you get from the skill</h2>
+
+  <table>
+    <tr><th>You get</th><th>What it is</th><th>Why</th></tr>
+    <tr>
+      <td><code>CLAUDE.md</code>, <code>.claude/rules/</code></td>
+      <td>The rules Claude always loads, about 190 lines, plus topic rules that load only when Claude touches a matching file.</td>
+      <td>A short file is followed more reliably, and the Python rules cost nothing while Claude edits CSS.</td>
+    </tr>
+    <tr>
+      <td><code>docs/</code></td>
+      <td>The workflow and its documents: inbox, spec, design, plan. The plan lists milestones with tests, model, effort and status.</td>
+      <td>Claude works from these files, not from memory of past sessions. One fact, one file.</td>
+    </tr>
+    <tr>
+      <td><code>scripts/milestones-runner.py</code></td>
+      <td>Runs the open milestones in order, each in a fresh session. Stops at a blocked milestone and prints the question; you approve in the plan, commit, run again.</td>
+      <td>No session carries another&rsquo;s context, and the runner stops instead of guessing.</td>
+    </tr>
+    <tr>
+      <td>Hooks, <code>scripts/check.py</code></td>
+      <td>Each edit: lint and fix. Each commit: all checks and tests.</td>
+      <td>Lint errors, type errors and failing tests cannot reach the history.</td>
+    </tr>
+    <tr>
+      <td><code>.claude/settings.json</code></td>
+      <td>Permissions: routine steps allowed, risky ones ask first, destructive ones denied (force push, hard reset).</td>
+      <td>A rule here is enforced. A rule in CLAUDE.md is only advice.</td>
+    </tr>
+    <tr>
+      <td>Tool configs, <code>.gitignore</code>, <code>config/.env.example</code></td>
+      <td>Ruff, mypy, pytest, ESLint, Prettier and Stylelint, configured. Secrets and generated files kept out of git. The list of settings.</td>
+      <td>Every project has the same layout and the same checks from the first commit.</td>
+    </tr>
+  </table>
+</section>
+
+<!-- 6. High quality by default -->
+<section id="essentials">
+  <div class="kicker">High quality by default</div>
+  <h2>The standard CLAUDE.md enforces the essentials</h2>
+  <p class="lead">The components of high-quality code, written into the rules of every new project.</p>
+
+  <table>
+    <tr><th>Essential</th><th>The rule</th><th>Why</th></tr>
+    <tr>
+      <td>Logging</td>
+      <td>Set up once, in the entry point, from settings. Plain text, one line per event: time, level, module. Never log secrets. <code>print</code> is blocked.</td>
+      <td>You can see what the app did, and a failure leaves a trail.</td>
+    </tr>
+    <tr>
+      <td>Configuration</td>
+      <td>Every setting lives in <code>config/.env</code> (never committed) and is listed in <code>.env.example</code>. No URLs, paths or thresholds inline. A missing value fails clearly at startup.</td>
+      <td>One place to change behavior, and secrets stay out of the code.</td>
+    </tr>
+    <tr>
+      <td>requirements.txt</td>
+      <td>The only list of dependencies. Direct ones only, pinned with <code>==</code>. Ask before adding one.</td>
+      <td>The same tools and versions on every machine. No surprise packages.</td>
+    </tr>
+    <tr>
+      <td>Exception handling</td>
+      <td>Catch only at an external boundary, add context and re-raise. Never swallow. The top level shows the full stack trace and stops.</td>
+      <td>Failures are loud and traceable, not hidden.</td>
+    </tr>
+    <tr>
+      <td>Testing</td>
+      <td>Every requirement has a test. Every user workflow has an end-to-end test. 80% branch coverage. A test is never weakened to make it pass.</td>
+      <td>The tests prove the app does what the spec says.</td>
+    </tr>
+  </table>
 </section>
 
 <!-- 4. What you get, and why -->
@@ -627,6 +756,27 @@
     }
   }, { rootMargin: "-50% 0px -50% 0px" });
   slides.forEach((slide) => observer.observe(slide));
+
+  // No vertical scrolling: a slide taller than the screen is zoomed down until it fits.
+  function fitSlide(slide) {
+    const style = getComputedStyle(slide);
+    const padding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+    const room = slide.clientHeight - padding;
+    const content = slide.lastElementChild;
+    let fit = 1;
+    slide.classList.add("measuring");
+    for (let i = 0; i < 5; i++) {
+      slide.style.setProperty("--fit", fit);
+      const needed = content.getBoundingClientRect().bottom - slide.getBoundingClientRect().top
+        - parseFloat(style.paddingTop);
+      if (needed <= room + 1) break;
+      fit = Math.max(fit * (room / needed) * 0.99, 0.4);
+    }
+    slide.classList.remove("measuring");
+  }
+
+  const fitter = new ResizeObserver((entries) => entries.forEach((entry) => fitSlide(entry.target)));
+  slides.forEach((slide) => fitter.observe(slide));
 
   const toggle = document.getElementById("panel-toggle");
   toggle.addEventListener("click", () => {
