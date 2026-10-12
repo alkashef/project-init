@@ -90,7 +90,9 @@ To change what new projects get, edit `assets/`, not this file.
      Stylelint and Prettier) on the file and sends what is left back to Claude, and the git
      pre-commit hook refuses a commit unless every check and test passes. Until `npm install` has run, it
      refuses commits that have web files to check, and says so.
-   - Write the first ideas in `docs/inbox.md`, then follow `docs/workflow.md`.
+   - Write the first ideas in `docs/inbox.md`, then follow `docs/workflow.md`. Once milestones are
+     planned, `python scripts/milestones-runner.py` runs them unattended, one `claude -p` session
+     each, and stops at the first that fails or needs a decision.
    - Review the **Project** section of the new `CLAUDE.md` and the layout table in `docs/design.md`.
 
 Do not edit the generated files or make more commits in this skill. Setting up the project is done

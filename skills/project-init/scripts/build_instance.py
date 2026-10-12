@@ -116,6 +116,7 @@ def rendered_templates() -> list[str]:
         "docs/plan.md",
         ".vscode/settings.json",
         "scripts/run-check.sh",
+        "scripts/milestones-runner.py",
     ]
 
 
@@ -149,7 +150,7 @@ def always_folders() -> dict[str, str]:
         "tests/": "`unit/` and `e2e/` tests.",
         "docs/": "Workflow, inbox, spec, design, and plan.",
         "config/": "`.env` (never committed) and `.env.example`.",
-        "scripts/": "`check.py` (the checks), `cleanup.py`, and setup scripts.",
+        "scripts/": "`check.py` (the checks), `milestones-runner.py`, `cleanup.py`, setup scripts.",
         ".claude/": "Claude Code settings, including the hook that checks each edit.",
         ".githooks/": "`pre-commit`: refuses a commit unless the checks pass.",
         ".vscode/": "Shared editor settings.",

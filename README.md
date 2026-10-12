@@ -65,12 +65,13 @@ tool's config, where it is enforced on every run, and `CLAUDE.md` keeps only wha
 | `scripts/check.py`, `scripts/run-check.sh` | The checks: `ruff check`, `ruff format --check` and `mypy` (with `ruff.toml`); `npm run lint`, `typecheck`, `format:check` (Prettier) and `lint:css` (Stylelint) with `package.json`, each once there are files for it to check; and the tests: pytest with the 80% branch-coverage floor once `tests/` holds a `test_*.py`, `npm test` once it holds a `*.test.js`. With `--edited` it checks one file: ruff, ESLint, Stylelint and Prettier fix what they can, and the rest goes back to Claude. `run-check.sh` finds the project's conda Python (the active environment, or `envs/<name>` under conda's folder) and runs `check.py` with it. | One command runs every check the extensions show in the editor, and both hooks use it. `python` alone is not reliable in hooks: on Windows it can be the Microsoft Store stub, and Claude Code's shell may not have the environment active. |
 | `.githooks/pre-commit` | Runs `scripts/run-check.sh`. A failing check or test refuses the commit. `init_project.py` turns it on with `git config core.hooksPath .githooks` after the first commit; after a fresh clone, the new README says to run that once. | Lint errors, type errors and failing tests cannot reach the history, from Claude or from you. The workflow already tells Claude to run the tests before a commit; the hook makes sure, for every commit. If a tool is missing (before `npm install`, for example), it refuses the commit and names the tool. |
 | `.gitattributes` | LF line endings for every text file, on every machine. | The hook scripts fail under `sh` with CRLF endings, which git on Windows (`core.autocrlf=true`) would otherwise give them. |
-| `docs/workflow.md`, `inbox.md`, `spec.md`, `design.md`, `plan.md` | The working loop (copied) and its four documents (filled in with the name and purpose). | Ideas go to the inbox, then the spec and design, then a plan, one milestone at a time. Claude works from these files instead of from memory of past sessions. |
+| `docs/workflow.md`, `inbox.md`, `spec.md`, `design.md`, `plan.md` | The working loop (copied) and its four documents (filled in with the name and purpose). `plan.md` lists the milestones in a table, "Milestones at a glance", with the model, effort and status of each, and holds one block per milestone. | Ideas go to the inbox, then the spec and design, then a plan, one milestone at a time. Claude works from these files instead of from memory of past sessions. |
 | `README.md` | Filled in with the name, purpose, stack, folder table, setup, run and test commands. | Every project starts with a README that says how to set it up and run it. |
 | `.gitignore` | Ignores secrets (`config/.env`), data, models, logs, caches, `node_modules`, local settings. | Secrets and large or generated files never reach GitHub. |
 | `config/.env.example` | The list of settings, with secrets left empty. | Copied to `config/.env`, which is never committed, so settings live in one place and secrets stay out of the code. |
 | `.vscode/settings.json` | Format on save, UTF-8, LF line endings, ruff for Python, Prettier and ESLint fixes for JavaScript, mypy with `mypy.ini`, pytest in `tests/`. The default terminal is cmd, and each new terminal runs `conda activate <project name>`. | The editor applies the same checks as the command line while you type, and every terminal starts in the project's environment, so nothing is installed into `base` by mistake. |
 | `.vscode/extensions.json` | Recommends extensions for the modules you chose: Python, Ruff and Mypy with `python`; ESLint and Prettier with `javascript`; Prettier and Stylelint with `html-css` or `ui-design`. Error Lens and SonarLint for every project. Built by `build_instance.py`, not copied. | VS Code offers to install them when the project opens; nothing installs them without your click. A project gets only the extensions its files use. |
+| `scripts/milestones-runner.py` | Runs the open milestones of `plan.md` in order, each in its own unattended `claude -p` session with the model and effort of its row. Checks first: the project's conda environment is active, git is clean, the branch pushes to a remote. After each milestone: its row left the plan, git is clean, everything is pushed. Stops at the first milestone that did not finish or wrote `.claude/blocked.md`. Live status line; logs and timings in `.claude/logs/`. `--start N`, `--end N`. | A planned list of milestones runs without you, one fresh session each, so no session carries another's context. The hooks still check every commit, and the runner stops instead of guessing. |
 | `scripts/cleanup.py` | Deletes caches and generated files (`__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, coverage, logs). Never source, data or environments. `--dry-run` lists only. | One safe command Claude may run without asking. |
 | `src/`, `tests/unit/`, `tests/e2e/` | Empty starting folders (each holds a `.gitkeep`). | Every project has the same layout, which the rules and configs assume. |
 
@@ -118,6 +119,7 @@ skills/project-init/            the skill. Install by copying this folder.
     docs/                       workflow.md (copied); inbox, spec, design, plan (filled in)
     scripts/cleanup.py          cache cleaner (copied)
     scripts/check.py            the checks both hooks run (copied)
+    scripts/milestones-runner.py  runs the plan unattended (filled in)
     scripts/run-check.sh        finds the project's Python, runs check.py (filled in)
     .githooks/pre-commit        the git hook (copied)
     README.md, requirements.txt, config/.env.example    (filled in or copied)
@@ -131,6 +133,8 @@ tests/                          the test suite (not installed with the skill)
   test_build_instance.py        what the builder writes and leaves alone
   test_init_project.py          init end to end, and every refusal
   test_checks.py                check.py and both hooks, with the real ruff, mypy and pytest
+  test_runner.py                the milestone runner, with a fake claude
+  fake_claude.py                stands in for `claude -p`: finishes, blocks or skips a milestone
 pytest.ini                      points pytest at tests/ and the skill's scripts
 CLAUDE.md, TODO.md              instructions for working on this repository; open items
 ```
@@ -269,6 +273,9 @@ Do "To use the skill to start a new project" above once. Then, for each new proj
    - Check the **Project** section of `CLAUDE.md` and the layout table in `docs/design.md`.
    - Write your first ideas in `docs/inbox.md`, then tell Claude to go through the inbox. From
      there the loop is in `docs/workflow.md`: inbox, spec and design, plan, one milestone at a time.
+   - To run the planned milestones without you: in the project terminal, run
+     `python scripts/milestones-runner.py`. It stops at the first milestone that fails or needs a
+     decision, and prints why.
 
 If it stops with an error, nothing was deleted. The usual causes: `gh` is missing or not logged in
 (`winget install GitHub.cli`, then `gh auth login`); the folder holds other files; the repository
@@ -341,6 +348,11 @@ config, GitHub account and conda environments are never touched.
   edit it fixes the file and sends the rest back as a `block` decision, and ignores other files; a
   missing tool is named; the tests run once there are some, and a failing one fails the check; and a
   real `git commit` is refused by the hook, then accepted once fixed.
+- `test_runner.py`: a new project's plan template, the workflow's row template and `.gitignore`
+  match what the runner reads; it checks the environment, the model and effort, and the prompt
+  names the milestone and its commit message. Whole runs, with a fake `claude` and the real
+  hooks: every open milestone is finished, committed and pushed in order with its model and
+  effort; a blocked milestone and one that did not finish stop the run; a dirty tree is refused.
 - The built `.vscode/settings.json` makes cmd the default terminal with `conda activate <name>`.
 
 ### Lint and type checks
@@ -348,7 +360,8 @@ config, GitHub account and conda environments are never touched.
 Use the configs that new projects get, in `assets/`. Run the checks for
 `assets/scripts/cleanup.py` from inside `assets/`, where it sits as it will in a new project. From
 anywhere else, the `scripts/**` exception for `print` does not match it. The same goes for
-`assets/scripts/check.py`, whose `S603` exception (it runs the check tools) is in `ruff.toml`. One
+`assets/scripts/check.py` and `assets/scripts/milestones-runner.py`, whose `S603` exceptions
+(they run the check tools, and git and claude) are in `ruff.toml`. One
 line in `init_project.py` carries `# noqa: S603` (it exists to run git and gh).
 
 ```bash

@@ -125,7 +125,7 @@ the hook files asks the user first; ask only to change a rule on purpose, never 
 | `data/` | Input and runtime data. |
 | `content/`, `site/` | Static site: Markdown source (authors edit only this) and generated output (committed, never edited by hand). |
 | `models/`, `prompts/` | Downloaded model weights (never committed; path from config) and LLM prompt files. |
-| `scripts/` | Setup, download, and maintenance scripts: `cleanup.py`, `download_models.py`, `download_assets.py`. |
+| `scripts/` | Setup, download, and maintenance scripts: `cleanup.py`, `check.py` (the checks the hooks run), `milestones-runner.py` (runs the plan unattended), `download_models.py`, `download_assets.py`. |
 | `.vscode/`, `.claude/` | Shared editor settings and Claude Code settings. |
 | Root | `CLAUDE.md`, `README.md`, `requirements.txt`, `.gitignore`, `main.py` (Python entry point), `Dockerfile`, `compose.yaml`, `.dockerignore` (Docker), and the tool configs: `ruff.toml`, `mypy.ini`, `pytest.ini` (Python), `package.json`, `tsconfig.json`, `eslint.config.js` (JavaScript). |
 
