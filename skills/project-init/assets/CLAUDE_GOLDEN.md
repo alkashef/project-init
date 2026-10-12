@@ -259,8 +259,8 @@ the hook files asks the user first; ask only to change a rule on purpose, never 
   delete), the paths listed as protected under Project rules, or another program's process.
 - If a task needs a forbidden action, or an approval you cannot get now (a new dependency, an
   architecture change, a spec change), stop that milestone. Write the reason and the exact question
-  to `.claude/blocked.md`, and ask in chat if the user is present. The file is never committed. The
-  user clears it.
+  to `docs/blocked.md` (template in `docs/workflow.md`), commit nothing, and ask in chat if the
+  user is present. The user clears it.
 
 ## Security and privacy
 <!-- A16. Applies when: always. -->

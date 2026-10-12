@@ -10,6 +10,7 @@ The same in every project. Project-specific rules are in `CLAUDE.md`.
 | `docs/spec.md` | What to build: requirements with IDs | AI, with user approval |
 | `docs/design.md` | How to build it: architecture, data, rules, decisions | AI |
 | `docs/plan.md` | What is left: only unfinished milestones | AI |
+| `docs/blocked.md` | Why the current milestone stopped, and the question for the user; otherwise "Nothing is blocked." | AI writes, user clears |
 
 Each fact lives in one file. Finished work is recorded by git history, not by the docs.
 
@@ -26,6 +27,7 @@ Each fact lives in one file. Finished work is recorded by git history, not by th
    5. Update docs the change made inaccurate (README, design).
    6. Delete the milestone's row and block from `plan.md`.
    7. Commit only the files this milestone changed, with the message `M<n>: <title>`, then push. Do not start the next milestone until the push succeeds.
+5. **Blocked.** If a milestone needs something it may not do on its own (a spec change, a user decision, a new dependency, an action `CLAUDE.md` forbids), stop it: write `blocked.md` (template below), leave every other file as it was, and commit nothing. Ask in chat too if the user is present. The user answers, puts `blocked.md` back to "Nothing is blocked.", commits it, and the milestone runs again.
 
 ## Rules
 
@@ -40,8 +42,9 @@ Each fact lives in one file. Finished work is recorded by git history, not by th
 the project's conda environment active, works through the table in order. Each milestone runs in
 its own `claude -p` session with the model and effort of its row, following step 4. The runner
 stops at the first milestone that did not finish (its row is still in the table, git is not clean,
-or a commit was not pushed) or that wrote `.claude/blocked.md`. Logs and timings go to
-`.claude/logs/`. It needs a clean git tree and a branch that pushes to a remote.
+or a commit was not pushed) or that wrote a blocker to `docs/blocked.md`, and prints it. Logs and
+timings go to `.claude/logs/`. It needs a clean git tree, a branch that pushes to a remote, and no
+open blocker.
 
 ## Milestone templates
 
@@ -62,4 +65,23 @@ A block under "Milestones":
 - **Tests first:** <test names, one per spec ID>.
 - **Build:** <the smallest change that passes them>.
 - **Gate:** <what must be true before commit>.
+```
+
+## Blocker template
+
+What replaces the whole of `docs/blocked.md` when a milestone stops. The first line must start with
+`# Blocked: M<n>`: that is how the runner tells a blocker from "Nothing is blocked."
+
+```markdown
+# Blocked: M<n> (<title>)
+
+<One sentence: what the milestone needs, and why it may not do it.>
+
+- <Each fact behind the stop, with its source: a spec row, a plan block, a rule, with file and line.>
+
+<What was left as it was: no code, test, doc or plan change; nothing committed or pushed.>
+
+To continue, do one of these:
+1. <What the user can do, then run M<n> again.>
+2. <The narrowest permission that would let the milestone go on.>
 ```

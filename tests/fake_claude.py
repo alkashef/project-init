@@ -4,7 +4,7 @@
 stdin, finds the milestone number and title, and acts by FAKE_CLAUDE_STATE:
 
     (unset)    finishes it: deletes its row and block from docs/plan.md, commits, and pushes
-    "blocked"  writes .claude/blocked.md and commits nothing
+    "blocked"  writes a blocker to docs/blocked.md and commits nothing
     "idle"     does nothing
 
 Every call's arguments are appended to FAKE_CLAUDE_LOG, one JSON list per line.
@@ -61,7 +61,8 @@ def main() -> int:
         return 1
     state = os.environ.get("FAKE_CLAUDE_STATE", "")
     if state == "blocked":
-        Path(".claude/blocked.md").write_text("Needs a decision: which database?\n", "utf-8")
+        blocker = f"# Blocked: M{match[1]} ({match[2]})\n\nNeeds a decision: which database?\n"
+        Path("docs/blocked.md").write_text(blocker, "utf-8")
         return 0
     if state == "idle":
         return 0

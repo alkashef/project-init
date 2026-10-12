@@ -2,9 +2,10 @@
 
 Each milestone of the table "Milestones at a glance" runs in a fresh `claude -p` session with the
 model and effort its row names, following the loop of docs/workflow.md. Before the first one, the
-runner checks the conda environment, a clean git tree, an upstream branch and .gitignore. After
-each one, it checks that the milestone's row left the plan, that git is clean and that everything
-was pushed; it stops at the first milestone that did not finish or wrote .claude/blocked.md. It
+runner checks the conda environment, that docs/blocked.md holds no open blocker, a clean git tree,
+an upstream branch and .gitignore. After each one, it checks that the milestone's row left the
+plan, that git is clean and that everything was pushed; it stops at the first milestone that did
+not finish or that wrote a blocker (a `# Blocked: M<n>` heading) to docs/blocked.md. It
 shows a live status line, logs each session to .claude/logs/M<n>.log, appends a timing to
 .claude/logs/timings.csv, and ends with a summary table.
 
@@ -35,7 +36,7 @@ from typing import Final, NoReturn, Self
 ENV_NAME: Final = "{{PROJECT_NAME}}"
 VALID_MODELS: Final = ("haiku", "sonnet", "opus")
 VALID_EFFORTS: Final = ("low", "medium", "high", "xhigh", "max")
-IGNORE_ENTRIES: Final = (".claude/logs/", ".claude/blocked.md")
+IGNORE_ENTRIES: Final = (".claude/logs/",)
 TAIL_LINES: Final = 30
 REFRESH_SECONDS: Final = 1.0
 OUTCOME_DONE: Final = "done"
@@ -121,8 +122,8 @@ class Paths:
 
     @property
     def blocked(self) -> Path:
-        """.claude/blocked.md, written by a milestone that had to stop."""
-        return self.root / ".claude" / "blocked.md"
+        """docs/blocked.md: "Nothing is blocked.", or the blocker a stopped milestone wrote."""
+        return self.root / "docs" / "blocked.md"
 
     @property
     def gitignore(self) -> Path:
@@ -412,7 +413,8 @@ def build_prompt(row: Row) -> str:
             "(e) if the pre-commit hook refuses the commit, fix the cause; never bypass the hook;",
             "(f) a spec and a design that disagree, any need for a user decision, or any action",
             "that CLAUDE.md 'Git and destructive actions' forbids: stop without committing, and",
-            "write the reason and the exact question to .claude/blocked.md;",
+            "replace docs/blocked.md with the reason and the exact question, in the blocker",
+            "template of docs/workflow.md (first line `# Blocked: M<n> (<title>)`);",
             "(g) end with the report in CLAUDE.md 'Communication and reporting'.",
         )
     )
@@ -509,6 +511,15 @@ def git_has_unpushed(root: Path) -> bool:
     return done.returncode != 0 or int(done.stdout.strip() or "0") > 0
 
 
+def has_blocker(blocked: Path) -> bool:
+    """Tell whether docs/blocked.md holds a blocker: a `# Blocked: M<n>` heading."""
+    if not blocked.exists():
+        return False
+    return any(
+        re.match(r"#\s*Blocked:\s*M\d+", line, re.IGNORECASE) for line in _read_lines(blocked)
+    )
+
+
 def _error(message: str) -> RunStoppedError:
     """Build the stop for a plain error: "ERROR: <message>" in red."""
     return RunStoppedError(f"ERROR: {message}")
@@ -536,14 +547,20 @@ def preflight(paths: Paths) -> None:
         paths: The repository files.
 
     Raises:
-        RunStoppedError: If the conda env is wrong, git is not clean, the branch has no upstream,
-            or .gitignore had to be changed.
+        RunStoppedError: If the conda env is wrong, a blocker is open, git is not clean, the
+            branch has no upstream, or .gitignore had to be changed.
     """
     if not in_project_env(sys.prefix):
         raise _error(
             f"Python runs from '{sys.prefix}', not from the conda env '{ENV_NAME}'. "
             f"Run 'conda activate {ENV_NAME}' first."
         )
+    if has_blocker(paths.blocked):
+        message = (
+            "docs/blocked.md holds an open blocker. Answer it, put the file back to "
+            '"Nothing is blocked.", commit it, and run again:'
+        )
+        raise RunStoppedError(message, _read_lines(paths.blocked), "yellow")
     if not git_is_clean(paths.root):
         raise _error("git status is not clean. Commit or stash your changes first.")
     if not git_has_upstream(paths.root):
@@ -718,7 +735,6 @@ def run_claude(paths: Paths, row: Row) -> ClaudeRun:
     Raises:
         RunStoppedError: If the claude program cannot be found or started.
     """
-    paths.blocked.unlink(missing_ok=True)
     paths.log_dir.mkdir(parents=True, exist_ok=True)
     program = shutil.which("claude") or "claude"
     command = [
@@ -768,8 +784,8 @@ def failure_reason(paths: Paths, row: Row, run: ClaudeRun) -> str | None:
 
 
 def judge(paths: Paths, row: Row, run: ClaudeRun) -> Verdict:
-    """Return done, blocked (.claude/blocked.md exists) or failed (with the reason) for a run."""
-    if paths.blocked.exists():
+    """Return done, blocked (docs/blocked.md holds a blocker) or failed (with the reason)."""
+    if has_blocker(paths.blocked):
         return Verdict(OUTCOME_BLOCKED, "")
     reason = failure_reason(paths, row, run)
     return Verdict(OUTCOME_DONE, "") if reason is None else Verdict(OUTCOME_FAILED, reason)

@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: Set up the current folder as a new project from the golden templates and push it to GitHub. Run it in a new, empty project folder that is open in VS Code. Builds CLAUDE.md, the path-scoped rules, docs/ (workflow, inbox, spec, design, plan), README, tool configs and starting folders, then commits, creates the GitHub repository, pushes, and creates a conda environment with the project's name. Use whenever the user wants to start, init, bootstrap or scaffold a new project or repo, or says "new project", even if they do not mention GitHub or the docs. Not for adding files to an existing project.
+description: Set up the current folder as a new project from the golden templates and push it to GitHub. Run it in a new, empty project folder that is open in VS Code. Builds CLAUDE.md, the path-scoped rules, docs/ (workflow, inbox, spec, design, plan, blocked), README, tool configs and starting folders, then commits, creates the GitHub repository, pushes, and creates a conda environment with the project's name. Use whenever the user wants to start, init, bootstrap or scaffold a new project or repo, or says "new project", even if they do not mention GitHub or the docs. Not for adding files to an existing project.
 ---
 
 # Project init

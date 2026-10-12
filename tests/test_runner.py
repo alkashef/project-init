@@ -142,8 +142,22 @@ def test_gitignore_entries_start_on_a_new_line(built: Path, tmp_path: Path) -> N
     gitignore.write_text("node_modules/", encoding="utf-8")
     assert runner.add_ignore_entries(gitignore)
     lines = gitignore.read_text(encoding="utf-8").splitlines()
-    assert lines == ["node_modules/", ".claude/logs/", ".claude/blocked.md"]
+    assert lines == ["node_modules/", ".claude/logs/"]
     assert not runner.add_ignore_entries(gitignore)
+
+
+def test_new_blocked_file_holds_no_blocker(built: Path) -> None:
+    runner = load_runner(built)
+    assert not runner.has_blocker(built / "docs" / "blocked.md")
+
+
+def test_workflow_blocker_template_is_a_blocker(built: Path, tmp_path: Path) -> None:
+    runner = load_runner(built)
+    workflow = (built / "docs" / "workflow.md").read_text(encoding="utf-8")
+    [heading] = [line for line in workflow.splitlines() if line.startswith("# Blocked: M<n>")]
+    blocked = tmp_path / "blocked.md"
+    blocked.write_text(heading.replace("<n>", "4") + "\n", encoding="utf-8")
+    assert runner.has_blocker(blocked)
 
 
 def test_runner_finishes_every_open_milestone(planned: Sandbox) -> None:
@@ -164,8 +178,19 @@ def test_runner_stops_at_a_blocked_milestone(planned: Sandbox) -> None:
     code, output = run_runner(planned)
     assert code == 1
     assert "M1 is blocked:" in output
+    assert "# Blocked: M1 (First)" in output
     assert "which database?" in output
     assert len(logged_calls(planned.folder.parent / "claude.log")) == 1
+
+
+def test_runner_will_not_start_with_an_open_blocker(planned: Sandbox) -> None:
+    blocker = "# Blocked: M1 (First)\n\nNeeds a decision.\n"
+    (planned.folder / "docs" / "blocked.md").write_text(blocker, encoding="utf-8")
+    planned.git("commit", "-am", "Record the blocker")
+    code, output = run_runner(planned)
+    assert code == 1
+    assert "docs/blocked.md holds an open blocker" in output
+    assert logged_calls(planned.folder.parent / "claude.log") == []
 
 
 def test_runner_stops_when_a_milestone_does_not_finish(planned: Sandbox) -> None:

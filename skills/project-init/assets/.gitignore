@@ -2,7 +2,6 @@
 config/.env
 .env
 .claude/settings.local.json
-.claude/blocked.md
 .claude/logs/
 
 # User data, generated data, models, logs
