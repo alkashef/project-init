@@ -111,27 +111,76 @@ Do not edit it.
 
 ### To use the skill
 
-Once per machine:
+Do these once per machine.
 
-1. Install the skill: copy `skills/project-init` to `%USERPROFILE%\.claude\skills\project-init`, and
-   delete the old `%USERPROFILE%\.claude\skills\project-docs-init` it replaces. Copy again after
-   every change.
-2. For the GitHub step: `winget install GitHub.cli`, then open a new terminal (the old one does
-   not see the new PATH) and run `gh auth login`. Git needs `user.name` and `user.email`. If winget
-   fails with `0x8a15000f` (data required by the source is missing), run
-   `winget source reset --force` in an administrator terminal, then install again.
-3. For the conda step: Miniconda, set up for cmd once with `conda init cmd.exe`, so that
-   `conda activate` works in the VS Code terminal.
+#### 1. Install the skill
+
+1. Copy `skills/project-init` to `%USERPROFILE%\.claude\skills\project-init`.
+2. Delete the old `%USERPROFILE%\.claude\skills\project-docs-init`. This skill replaces it.
+3. After every change to the skill, copy it again.
+
+#### 2. Set up GitHub
+
+1. Install the GitHub CLI:
+
+   ```bat
+   winget install GitHub.cli
+   ```
+
+2. Open a new terminal. The old one does not see the new PATH.
+3. Log in:
+
+   ```bat
+   gh auth login
+   ```
+
+4. Check that git has `user.name` and `user.email` set.
+
+If winget fails with `0x8a15000f` (data required by the source is missing):
+
+1. In an administrator terminal, run:
+
+   ```bat
+   winget source reset --force
+   ```
+
+2. Install again (step 1).
+
+#### 3. Set up conda
+
+1. Install Miniconda.
+2. Set it up for cmd, once, so that `conda activate` works in the VS Code terminal:
+
+   ```bat
+   conda init cmd.exe
+   ```
 
 You do not create a conda environment for a new project. The skill creates it, named after that
 project.
 
 ### To work on this repository
 
-Only to change the skill or run its tests. `project-init` here is this repository's own
-environment, not a new project's. Create it once: `conda create -n project-init python=3.12`, then
-`conda activate project-init` and `pip install ruff==0.17.0 mypy pytest`. After that, only
-`conda activate project-init`.
+You need this only to change the skill or run its tests. `project-init` here is this repository's
+own environment, not a new project's.
+
+1. Create the environment, once:
+
+   ```bat
+   conda create -n project-init python=3.12
+   ```
+
+2. Activate it and install the tools, once:
+
+   ```bat
+   conda activate project-init
+   pip install ruff==0.17.0 mypy pytest
+   ```
+
+3. After that, each time you work here, only activate it:
+
+   ```bat
+   conda activate project-init
+   ```
 
 ## How to run
 
