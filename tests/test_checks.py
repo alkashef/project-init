@@ -102,7 +102,10 @@ def write_tested_module(folder: Path, expected: int) -> None:
         '"""Arithmetic."""\n\n\ndef add(a: int, b: int) -> int:\n    """Add."""\n    return a + b\n'
     )
     (folder / "src" / "calc.py").write_text(calc, encoding="utf-8")
-    test = f"from src.calc import add\n\n\ndef test_add() -> None:\n    assert add(1, 2) == {expected}\n"
+    test = (
+        "from src.calc import add\n\n\n"
+        f"def test_add() -> None:\n    assert add(1, 2) == {expected}\n"
+    )
     (folder / "tests" / "unit" / "test_calc.py").write_text(test, encoding="utf-8")
 
 
