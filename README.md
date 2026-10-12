@@ -17,10 +17,60 @@ This repository is the skill's source. Everything the skill needs is inside `ski
    (ruff, mypy, ESLint, `tsc`, permissions) are in the configs, not in prose.
 3. `SKILL.md` tells Claude how to run it: what to ask, the command, how to handle failures.
 
+## What a new project gets, and why
+
+The skill installs nothing. It writes files and sets up git and GitHub. The tools those files
+configure (ruff, mypy, pytest, ESLint, TypeScript) are installed by the user afterwards: the
+skill's report lists them, and the new README's Setup says how.
+
+The idea behind the files: Claude follows written rules most of the time, but not always, and every
+line of `CLAUDE.md` costs context in every session. So each rule a tool can check goes into that
+tool's config, where it is enforced on every run, and `CLAUDE.md` keeps only what no tool can check.
+
+### Every project
+
+| File | What it is | Why |
+| --- | --- | --- |
+| `CLAUDE.md` | The rules Claude always loads: workflow, project facts, how to work. About 190 lines. | Claude Code reads it at the start of every session. Anthropic advises keeping it under 200 lines: a longer file uses more context and is followed less reliably. |
+| `.claude/rules/*.md` | The other rules, one file per topic, each with `paths:` globs. Which files you get depends on the modules. | A rule file loads only when Claude touches a matching file, so the Python rules cost nothing while Claude edits CSS. |
+| `.claude/settings.json` | Claude Code permissions. Allowed without asking: git status, diff, log, add, commit, push, and `cleanup.py`. Asks first: editing `CLAUDE.md`, the spec and this file; installing packages; deleting folders; killing processes. Denied: force push, `git reset --hard`, `git clean`, `git restore`, and deleting Docker volumes. | Routine steps run without prompts, and commands that destroy work cannot run at all. A rule here is enforced; a rule in `CLAUDE.md` is only advice. |
+| `docs/workflow.md`, `inbox.md`, `spec.md`, `design.md`, `plan.md` | The working loop (copied) and its four documents (filled in with the name and purpose). | Ideas go to the inbox, then the spec and design, then a plan, one milestone at a time. Claude works from these files instead of from memory of past sessions. |
+| `README.md` | Filled in with the name, purpose, stack, folder table, setup, run and test commands. | Every project starts with a README that says how to set it up and run it. |
+| `.gitignore` | Ignores secrets (`config/.env`), data, models, logs, caches, `node_modules`, local settings. | Secrets and large or generated files never reach GitHub. |
+| `config/.env.example` | The list of settings, with secrets left empty. | Copied to `config/.env`, which is never committed, so settings live in one place and secrets stay out of the code. |
+| `.vscode/settings.json` | Format on save, UTF-8, LF line endings, ruff for Python, Prettier and ESLint fixes for JavaScript, mypy with `mypy.ini`, pytest in `tests/`. | The editor applies the same checks as the command line while you type. |
+| `.vscode/extensions.json` | Recommends Python, Ruff, Mypy, ESLint, Prettier, Stylelint, Error Lens and SonarLint. | VS Code offers to install them when the project opens. |
+| `scripts/cleanup.py` | Deletes caches and generated files (`__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, coverage, logs). Never source, data or environments. `--dry-run` lists only. | One safe command Claude may run without asking. |
+| `src/`, `tests/unit/`, `tests/e2e/` | Empty starting folders (each holds a `.gitkeep`). | Every project has the same layout, which the rules and configs assume. |
+
+### With the `python` module
+
+| File | What it is | Why |
+| --- | --- | --- |
+| `ruff.toml` | Linter and formatter config: line length 100, docstrings, type annotations, import order, naming, security checks, no `print` outside `scripts/`, pathlib, and limits on complexity (8), arguments (4) and statements per function (15). | Ruff checks style, common bugs and code smells in well under a second, so Claude can run it after every change. The limits keep functions small. |
+| `mypy.ini` | Type checker config: `strict = True` on `src/`. | Strict typing finds wrong types and missing `None` checks before the code runs, and typed code is easier for Claude to change safely. |
+| `pytest.ini` | Test config: tests live in `tests/`, async tests run without decorators. The test command requires 80% branch coverage. | Tests prove a change works. The coverage floor stops untested code from growing. |
+| `requirements.txt` | Empty apart from a comment naming what to add: pytest, pytest-cov, mypy, ruff, python-dotenv. | Versions are pinned with `==` when the environment is created, from what was actually installed. The skill does not guess versions. |
+
+### With the `javascript` module
+
+| File | What it is | Why |
+| --- | --- | --- |
+| `package.json` | Dev-only tools, pinned: ESLint, TypeScript, Node types. Scripts: `typecheck`, `lint`, `test`. | The app itself has no dependencies and no build step. These tools only check the code. |
+| `tsconfig.json` | Type-checks plain JavaScript (`checkJs`, `strict`) without compiling. | Type errors are found in `.js` files without switching to TypeScript. |
+| `eslint.config.js` | ESLint rules: the same size limits as ruff, `const` over `let`, `===`, no `console` outside `log.js`, no `fetch` outside `api.js`, no `innerHTML`. | It enforces the JavaScript rules from `CLAUDE.md`, including the ones that keep unsafe HTML out. |
+
+### With other modules
+
+Most modules add only a rules file under `.claude/rules/`. Some also add folders: `data` adds
+`data/`, `llm` adds `models/` and `prompts/`, `static-site` adds `content/` and `site/`, and the
+`html-css` and `ui-design` modules add `tests/e2e/ui/`. `docker` adds `.dockerignore`, which keeps
+secrets, data, models, caches, tests and docs out of the image.
+
 ## Stack
 
 Python 3.12 (conda environment `project-init`). The scripts use only the standard library. They were
-checked with ruff 0.17.0 and mypy 2.3.1 using the configs in `assets/`.
+checked with ruff 0.17.0 and mypy 2.4.0 using the configs in `assets/`.
 
 ## File structure
 
@@ -128,6 +178,18 @@ There is no automated test suite in this repository yet. What was run, with scra
 
 - `ruff check`, `ruff format --check` and `mypy` (strict) on the three scripts, with the configs in
   `assets/`. One line in `init_project.py` carries `# noqa: S603` (it exists to run git and gh).
+  Run the checks for `assets/scripts/cleanup.py` from inside `assets/`, where it sits as it will in
+  a new project. From anywhere else, the `scripts/**` exception for `print` does not match it:
+
+  ```bash
+  # from skills/project-init/
+  conda run -n project-init ruff check --config assets/ruff.toml scripts
+  conda run -n project-init ruff format --check --config assets/ruff.toml scripts assets/scripts
+  conda run -n project-init mypy --config-file assets/mypy.ini scripts assets/scripts
+  # from skills/project-init/assets/
+  conda run -n project-init ruff check --config ruff.toml scripts
+  ```
+
 - `build_instance.py` into a scratch folder: full-stack and Python-only builds, `--dry-run`,
   a second run (skips existing files), and a rejected module name.
 - `init_project.py` end to end against a fake `gh` and local bare repositories: 63 checks (empty
