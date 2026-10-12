@@ -107,19 +107,17 @@ is kept so you can see the full wording of rules that were shortened or dropped,
 Nothing reads it: `build_instance.py` reads only `CLAUDE_GOLDEN.md`, and new projects never get it.
 Do not edit it.
 
-## Setup
-
-### To use the skill to start a new project
+## To use the skill to start a new project
 
 Do these once per machine.
 
-#### 1. Install the skill
+### 1. Install the skill
 
 1. Copy `skills/project-init` to `%USERPROFILE%\.claude\skills\project-init`.
 2. Delete the old `%USERPROFILE%\.claude\skills\project-docs-init`. This skill replaces it.
 3. After every change to the skill, copy it again.
 
-#### 2. Set up GitHub
+### 2. Set up GitHub
 
 1. Install the GitHub CLI:
 
@@ -146,7 +144,7 @@ If winget fails with `0x8a15000f` (data required by the source is missing):
 
 2. Install again (step 1).
 
-#### 3. Set up conda
+### 3. Set up conda
 
 1. Install Miniconda.
 2. Set it up for cmd, once, so that `conda activate` works in the VS Code terminal:
@@ -158,7 +156,7 @@ If winget fails with `0x8a15000f` (data required by the source is missing):
 You do not create a conda environment for a new project. The skill creates it, named after that
 project.
 
-### To work on this repository
+## To work on this repository
 
 You need this only to change the skill or run its tests. `project-init` here is this repository's
 own environment, not a new project's.
@@ -186,7 +184,7 @@ own environment, not a new project's.
 
 ### Start a new project with the skill
 
-Do "To use the skill to start a new project" under Setup once. Then, for each new project:
+Do "To use the skill to start a new project" above once. Then, for each new project:
 
 1. **Create an empty folder** for the project, for example `C:\alkashef\GitHub\my-app`, and open it
    in VS Code (File > Open Folder). The folder may hold only `.git`, `.claude` and `.vscode`. A
