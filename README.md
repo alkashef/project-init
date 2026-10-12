@@ -71,7 +71,7 @@ secrets, data, models, caches, tests and docs out of the image.
 
 ## Stack
 
-Python 3.12 (conda environment `project-init`). The scripts use only the standard library. They were
+Python 3.12 (this repository's conda environment, `project-init`). The scripts use only the standard library. They were
 checked with ruff 0.17.0 and mypy 2.4.0 using the configs in `assets/`.
 
 ## File structure
@@ -109,24 +109,35 @@ Do not edit it.
 
 ## Setup
 
-1. Create the conda environment once: `conda create -n project-init python=3.12`, then
-   `conda activate project-init` and `pip install ruff==0.17.0 mypy pytest`. After that, only
-   `conda activate project-init`.
-2. Install the skill: copy `skills/project-init` to `%USERPROFILE%\.claude\skills\project-init`, and
+### To use the skill
+
+Once per machine:
+
+1. Install the skill: copy `skills/project-init` to `%USERPROFILE%\.claude\skills\project-init`, and
    delete the old `%USERPROFILE%\.claude\skills\project-docs-init` it replaces. Copy again after
    every change.
-3. For the GitHub step: `winget install GitHub.cli`, then open a new terminal (the old one does
+2. For the GitHub step: `winget install GitHub.cli`, then open a new terminal (the old one does
    not see the new PATH) and run `gh auth login`. Git needs `user.name` and `user.email`. If winget
    fails with `0x8a15000f` (data required by the source is missing), run
    `winget source reset --force` in an administrator terminal, then install again.
-4. For the conda step: Miniconda, set up for cmd once with `conda init cmd.exe`, so that
+3. For the conda step: Miniconda, set up for cmd once with `conda init cmd.exe`, so that
    `conda activate` works in the VS Code terminal.
+
+You do not create a conda environment for a new project. The skill creates it, named after that
+project.
+
+### To work on this repository
+
+Only to change the skill or run its tests. `project-init` here is this repository's own
+environment, not a new project's. Create it once: `conda create -n project-init python=3.12`, then
+`conda activate project-init` and `pip install ruff==0.17.0 mypy pytest`. After that, only
+`conda activate project-init`.
 
 ## How to run
 
 ### Start a new project with the skill
 
-Do the Setup above once. Then, for each new project:
+Do "To use the skill" under Setup once. Then, for each new project:
 
 1. **Create an empty folder** for the project, for example `C:\alkashef\GitHub\my-app`, and open it
    in VS Code (File > Open Folder). The folder may hold only `.git`, `.claude` and `.vscode`. A
