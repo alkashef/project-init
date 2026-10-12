@@ -93,7 +93,15 @@ def template_files() -> dict[str, list[str]]:
             "scripts/cleanup.py",
         ],
         "python": ["ruff.toml", "mypy.ini", "pytest.ini", "requirements.txt"],
-        "javascript": ["package.json", "tsconfig.json", "eslint.config.js"],
+        "javascript": [
+            "package.json",
+            "tsconfig.json",
+            "eslint.config.js",
+            ".prettierrc.json",
+            ".stylelintrc.json",
+        ],
+        "html-css": ["package.json", ".prettierrc.json", ".stylelintrc.json"],
+        "ui-design": ["package.json", ".prettierrc.json", ".stylelintrc.json"],
         "docker": [".dockerignore"],
     }
 
@@ -116,7 +124,11 @@ def extension_ids() -> dict[str, list[str]]:
     return {
         "always": ["usernamehw.errorlens", "sonarsource.sonarlint-vscode"],
         "python": ["ms-python.python", "charliermarsh.ruff", "ms-python.mypy-type-checker"],
-        "javascript": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
+        "javascript": [
+            "dbaeumer.vscode-eslint",
+            "esbenp.prettier-vscode",
+            "stylelint.vscode-stylelint",
+        ],
         "html-css": ["esbenp.prettier-vscode", "stylelint.vscode-stylelint"],
         "ui-design": ["esbenp.prettier-vscode", "stylelint.vscode-stylelint"],
     }

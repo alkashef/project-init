@@ -105,9 +105,43 @@ def test_no_conda_needs_no_conda(sandbox: Sandbox) -> None:
 
 def test_failed_conda_create_says_how_to_finish(sandbox: Sandbox) -> None:
     sandbox.env["FAKE_CONDA_STATE"] = "fail"
-    result = sandbox.init()
+    result = sandbox.init("--with", "python")
     assert result.returncode == 1
     assert "`conda create -n demo python=3.12`" in result.stderr
+    assert sandbox.remote_head() == sandbox.git("rev-parse", "HEAD")
+    assert [call for call in sandbox.conda_calls() if call[0] == "run"] == []
+
+
+def requirements(sandbox: Sandbox) -> str:
+    """Return the committed requirements.txt of the sandbox project."""
+    return sandbox.git("show", "HEAD:requirements.txt")
+
+
+def test_python_tools_are_installed_and_pinned_in_the_first_commit(sandbox: Sandbox) -> None:
+    result = sandbox.init("--with", "python")
+    assert result.returncode == 0, result.stderr
+    install = ["run", "-n", "demo", "python", "-m", "pip", "install"]
+    assert [*install, "pytest", "pytest-cov", "mypy", "ruff", "python-dotenv"] in (
+        sandbox.conda_calls()
+    )
+    pins = [line for line in requirements(sandbox).splitlines() if not line.startswith("#")]
+    expected = ["pytest", "pytest-cov", "mypy", "ruff", "python-dotenv"]
+    assert pins == [f"{tool}==1.2.3" for tool in expected]
+    assert sandbox.git("rev-list", "--count", "HEAD") == "1"
+    assert "Python tools installed and pinned" in result.stdout
+
+
+def test_no_python_tools_without_the_python_module(sandbox: Sandbox) -> None:
+    assert sandbox.init("--with", "javascript").returncode == 0
+    assert [call for call in sandbox.conda_calls() if call[0] == "run"] == []
+
+
+def test_failed_pip_install_says_how_to_finish(sandbox: Sandbox) -> None:
+    sandbox.env["FAKE_PIP_STATE"] = "fail"
+    result = sandbox.init("--with", "python")
+    assert result.returncode == 1
+    assert "pip install pytest pytest-cov mypy ruff python-dotenv" in result.stderr
+    assert [line for line in requirements(sandbox).splitlines() if not line.startswith("#")] == []
     assert sandbox.remote_head() == sandbox.git("rev-parse", "HEAD")
 
 

@@ -54,10 +54,12 @@ To change what new projects get, edit `assets/`, not this file.
    `.vscode`), git and its identity, the `gh` login, that no GitHub repository has that name, and
    that conda is installed; (2) runs `git init -b main` unless the folder is already a repository
    with no commits; (3) runs `build_instance.py`, which keeps any file that already exists;
-   (4) commits, then turns on the pre-commit hook (`git config core.hooksPath .githooks`);
-   (5) runs `gh repo create` unless `origin` already exists, then pushes `main`;
-   (6) runs `conda create -n <name> python=3.12` unless that environment already exists. The first
-   commit holds the whole scaffold, so the push is never empty. `.vscode/settings.json` makes cmd
+   (4) runs `conda create -n <name> python=3.12` unless that environment already exists and, with
+   the `python` module, installs pytest, pytest-cov, mypy, ruff and python-dotenv into it and pins
+   them in `requirements.txt`; (5) commits, then turns on the pre-commit hook
+   (`git config core.hooksPath .githooks`); (6) runs `gh repo create` unless `origin` already
+   exists, then pushes `main`. The first commit holds the whole scaffold, so the push is never
+   empty. `.vscode/settings.json` makes cmd
    the default VS Code terminal, and each new terminal runs `conda activate <name>`.
 
 3. **If it fails**, show the error as printed and give the fix. Do not delete anything.
@@ -68,8 +70,8 @@ To change what new projects get, edit `assets/`, not this file.
    - The push failed after the repository was created: the project is committed locally. Fix the
      cause, then run `git push -u origin main` in the project folder.
    - conda is missing: ask the user to install Miniconda, or rerun with `--no-conda`.
-   - `conda create` failed: the project is set up and pushed. Give the user the command the error
-     prints.
+   - `conda create` or the pip install failed: the project is still committed and pushed (with
+     `requirements.txt` unpinned). Give the user the commands the error prints.
    - Anything else: the script says what to change. Rerun with the corrected input.
 
 4. **Report**: the repository URL and the next steps:
@@ -79,17 +81,15 @@ To change what new projects get, edit `assets/`, not this file.
      say yes: until then it ignores the `allow` rules.
    - Open a new VS Code terminal: it is cmd, with the project's conda environment active. If it
      says `conda` is not recognized, run `conda init cmd.exe` once and open a new terminal.
-   - Python: in that terminal, install `pytest`, `pytest-cov`, `mypy`, `ruff` and
-     `python-dotenv`, and pin their versions in `requirements.txt`. The scaffold leaves it empty on
-     purpose, because it does not invent versions. JavaScript: run `npm install`. Then run
-     `python scripts/check.py` in that terminal: it prints `All checks passed.` once the tools
-     are found.
+   - JavaScript, HTML or CSS: in that terminal, run `npm install`. The Python tools are already
+     installed and pinned. Then run `python scripts/check.py` in that terminal: it prints
+     `All checks passed.` once the tools are found.
    - Install the recommended VS Code extensions: VS Code may not offer them, because the file
      appeared after the folder was opened. Extensions view, search `@recommended`.
-   - The checks are enforced: after each edit, a Claude Code hook runs ruff or ESLint on the file
-     and sends what is left back to Claude, and the git pre-commit hook refuses a commit unless
-     every check passes. Until the tools above are installed, it refuses every commit and names
-     what is missing.
+   - The checks are enforced: after each edit, a Claude Code hook runs ruff (or ESLint,
+     Stylelint and Prettier) on the file and sends what is left back to Claude, and the git
+     pre-commit hook refuses a commit unless every check passes. Until `npm install` has run, it
+     refuses commits that have web files to check, and says so.
    - Write the first ideas in `docs/inbox.md`, then follow `docs/workflow.md`.
    - Review the **Project** section of the new `CLAUDE.md` and the layout table in `docs/design.md`.
 

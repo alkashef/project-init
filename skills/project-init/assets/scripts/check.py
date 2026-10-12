@@ -1,15 +1,18 @@
-"""Run the project's checks: ruff and mypy for Python, ESLint and tsc for JavaScript.
+"""Run the project's checks: ruff and mypy for Python; ESLint, tsc, Prettier and Stylelint for web.
 
 Two hooks run it, and so can you:
     python scripts/check.py            # every check. The git pre-commit hook runs this.
     python scripts/check.py --edited   # one edited file, with a Claude Code hook's JSON on stdin
 
-The Python checks run when `ruff.toml` exists, the JavaScript checks when `package.json` exists.
-mypy runs once `src/` holds Python; ESLint and tsc once `src/` or `tests/` holds JavaScript. Tests
-are not run here: they belong to the workflow (`docs/workflow.md`).
+The Python checks run when `ruff.toml` exists; mypy once `src/` holds Python. The web checks run
+when `package.json` exists, each once there is something to check: ESLint and tsc (with
+`eslint.config.js`) once `src/` or `tests/` holds JavaScript, Prettier once they hold JavaScript,
+CSS or HTML, Stylelint once `src/` holds CSS. Tests are not run here: they belong to the workflow
+(`docs/workflow.md`).
 
-The full run exits 2 if anything fails, so that git refuses the commit. With --edited, ruff or
-ESLint fixes what it can in that one file, and the rest goes back to Claude as a JSON `block`
+The full run exits 2 if anything fails, so that git refuses the commit. With --edited, ruff,
+ESLint, Stylelint and Prettier fix what they can in that one file, and the rest goes back to Claude
+as a JSON `block`
 decision on stdout (exit 0). Claude Code may run hooks in PowerShell, which turns every failing
 exit code into 1, so an exit code alone would not reach Claude. A tool that is not installed fails
 the full run, but is skipped after an edit.
@@ -17,6 +20,7 @@ the full run, but is skipped after an edit.
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -26,13 +30,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 FAILED = 2
 JS_SUFFIXES = {".js", ".mjs", ".cjs", ".ts"}
+WEB_SUFFIXES = JS_SUFFIXES | {".css", ".html"}
 
 
 def run(command: list[str]) -> tuple[int, str]:
-    """Run a command in the project root. Return its exit code and its output."""
+    """Run a command in the project root. Return its exit code and its output, without colors."""
     result = subprocess.run(
         command,
         cwd=ROOT,
+        env={**os.environ, "NO_COLOR": "1", "FORCE_COLOR": "0"},
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -62,12 +68,19 @@ def python_checks() -> list[list[str]]:
     return checks
 
 
-def javascript_checks() -> list[list[str]]:
-    """Return the JavaScript checks, once `src/` or `tests/` holds JavaScript."""
-    if not (ROOT / "package.json").is_file() or not has_files(["src", "tests"], JS_SUFFIXES):
+def web_checks() -> list[list[str]]:
+    """Return the `npm run` checks (see package.json) that have something to check."""
+    if not (ROOT / "package.json").is_file():
         return []
+    scripts: list[str] = []
+    if (ROOT / "eslint.config.js").is_file() and has_files(["src", "tests"], JS_SUFFIXES):
+        scripts += ["lint", "typecheck"]
+    if has_files(["src", "tests"], WEB_SUFFIXES):
+        scripts.append("format:check")
+    if has_files(["src"], {".css"}):
+        scripts.append("lint:css")
     npm = shutil.which("npm") or "npm"
-    return [[npm, "run", "lint"], [npm, "run", "typecheck"]]
+    return [[npm, "run", script] for script in scripts]
 
 
 def why_not_runnable(command: list[str]) -> str:
@@ -92,7 +105,7 @@ def label(command: list[str]) -> str:
 def check_all() -> int:
     """Run every check that applies and print each failure. Return 0 or FAILED."""
     failures: list[str] = []
-    for command in python_checks() + javascript_checks():
+    for command in python_checks() + web_checks():
         problem = why_not_runnable(command)
         if not problem:
             code, output = run(command)
@@ -114,6 +127,24 @@ def edited_file(hook_input: str) -> Path | None:
     return path if raw and path.is_relative_to(ROOT) and path.is_file() else None
 
 
+def node_tool(name: str) -> str | None:
+    """Return the path of a tool `npm install` put in node_modules, or None."""
+    return shutil.which(name, path=str(ROOT / "node_modules" / ".bin"))
+
+
+def web_fix_commands(path: Path, relative: str) -> list[list[str]]:
+    """Return the linter's fixes (ESLint or Stylelint), then Prettier's formatting, for one file."""
+    linter = (
+        "stylelint" if path.suffix == ".css" else "eslint" if path.suffix in JS_SUFFIXES else ""
+    )
+    commands: list[list[str]] = []
+    for tool, option in [(linter, "--fix"), ("prettier", "--write")]:
+        executable = node_tool(tool) if tool else None
+        if executable:
+            commands.append([executable, option, relative])
+    return commands
+
+
 def fix_commands(path: Path) -> list[list[str]]:
     """Return the commands that fix one file and report what they cannot fix.
 
@@ -125,9 +156,8 @@ def fix_commands(path: Path) -> list[list[str]]:
         formatting = python_tool("ruff", "format", relative)
         fixes = python_tool("ruff", "check", "--fix", "--output-format=concise", relative)
         return [formatting, fixes, formatting]
-    eslint = shutil.which("eslint", path=str(ROOT / "node_modules" / ".bin"))
-    if path.suffix in JS_SUFFIXES and eslint:
-        return [[eslint, "--fix", relative]]
+    if path.suffix in WEB_SUFFIXES:
+        return web_fix_commands(path, relative)
     return []
 
 

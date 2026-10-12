@@ -3,10 +3,11 @@
 Run it from a new, empty project folder (the folder open in VS Code). Nothing is changed until
 every check passes. Then, in order: `git init` (unless the folder is already a repository with no
 commits), build the scaffold with build_instance.py (CLAUDE.md, rules, docs, configs, starting
-folders), commit, turn on the pre-commit hook (`core.hooksPath`), create the GitHub repository
-(unless `origin` already exists), push, and create a conda environment with the project's name
-(unless one exists). The scaffold files come from the skill's `assets/` folder (next to this
-`scripts/` folder).
+folders), create a conda environment with the project's name (unless one exists) and, for a Python
+project, install the Python tools and pin them in requirements.txt, commit, turn on the pre-commit
+hook (`core.hooksPath`), create the GitHub repository (unless `origin` already exists), and push.
+A conda or pip failure is reported at the end, after the commit and the push. The scaffold files
+come from the skill's `assets/` folder (next to this `scripts/` folder).
 
 Usage:
     python init_project.py --with python http-apis --purpose "Does X"
@@ -149,16 +150,53 @@ def conda_env_exists(conda: str, name: str) -> bool:
     return any(Path(env).name == name for env in envs)
 
 
-def create_env(conda: str, name: str) -> None:
-    """Create the project's conda environment. On failure, say how to finish by hand."""
-    command = [conda, "create", "-n", name, "python=3.12", "-y"]
-    result = run(command)
-    if result.returncode != 0:
-        raise SystemExit(
-            f"error: conda could not create the environment:\n{result.stderr.strip()}\n"
-            "The project is set up and committed. Run "
-            f"`conda create -n {name} python=3.12` yourself."
+def create_env(conda: str, name: str) -> str:
+    """Create the project's conda environment. Return '' or the error that says how to finish."""
+    result = run([conda, "create", "-n", name, "python=3.12", "-y"])
+    if result.returncode == 0:
+        return ""
+    return (
+        f"error: conda could not create the environment:\n{result.stderr.strip()}\n"
+        f"The project is set up and committed. Run `conda create -n {name} python=3.12` "
+        f"yourself, then `pip install {' '.join(python_tools())}` in it if the project uses "
+        "Python, and pin their versions in requirements.txt."
+    )
+
+
+def python_tools() -> list[str]:
+    """Return the tools a Python project's checks and tests need, in requirements.txt order."""
+    return ["pytest", "pytest-cov", "mypy", "ruff", "python-dotenv"]
+
+
+def pinned_requirements(installed: list[dict[str, str]]) -> str:
+    """Return requirements.txt: each Python tool pinned with == to the version pip installed."""
+    versions = {p["name"].lower().replace("_", "-"): p["version"] for p in installed}
+    pins = [f"{tool}=={versions[tool]}" for tool in python_tools() if tool in versions]
+    header = (
+        "# Direct dependencies only, each pinned with == to the installed version.\n"
+        "# Add pytest-asyncio, pinned the same way, if the project has async code.\n"
+    )
+    return header + "\n".join(pins) + "\n"
+
+
+def install_tools(conda: str, name: str, folder: Path) -> str:
+    """Install the Python tools in the environment and pin them in requirements.txt.
+
+    Returns:
+        An empty string, or the error that says how to finish by hand.
+    """
+    pip = [conda, "run", "-n", name, "python", "-m", "pip"]
+    installed = run([*pip, "install", *python_tools()])
+    listed = run([*pip, "list", "--format=json"]) if installed.returncode == 0 else installed
+    if listed.returncode != 0:
+        return (
+            f"error: pip could not install the Python tools:\n{listed.stderr.strip()}\n"
+            f"The project is set up and committed. In its environment, run "
+            f"`pip install {' '.join(python_tools())}` and pin their versions in requirements.txt."
         )
+    text = pinned_requirements(json.loads(listed.stdout))
+    (folder / "requirements.txt").write_text(text, encoding="utf-8", newline="\n")
+    return ""
 
 
 def build_command(folder: Path, args: argparse.Namespace) -> list[str]:
@@ -204,19 +242,22 @@ def executable_scripts() -> list[str]:
 
 
 def create_project(args: argparse.Namespace, folder: Path, plan: Plan) -> list[str]:
-    """Start the repository, build the scaffold, and commit it. Return the builder's report."""
+    """Start the repository and build the scaffold. Return the builder's report."""
     if plan.has_repo:
         run_ok([plan.git, "symbolic-ref", "HEAD", "refs/heads/main"], folder)
     else:
         run_ok([plan.git, "init", "-b", "main"], folder)
-    report = run_ok(build_command(folder, args))
-    run_ok([plan.git, "add", "-A"], folder)
+    return run_ok(build_command(folder, args)).splitlines()
+
+
+def commit_project(git: str, folder: Path) -> None:
+    """Commit the whole scaffold, then turn on the pre-commit hook."""
+    run_ok([git, "add", "-A"], folder)
     # Executable in git, so the scripts run as hooks after a clone on Linux or macOS too.
-    run_ok([plan.git, "update-index", "--chmod=+x", *executable_scripts()], folder)
-    run_ok([plan.git, "commit", "-m", "Initial scaffold from project-init"], folder)
-    # Turned on after the first commit: the checks need tools the user installs afterwards.
-    run_ok([plan.git, "config", "core.hooksPath", ".githooks"], folder)
-    return report.splitlines()
+    run_ok([git, "update-index", "--chmod=+x", *executable_scripts()], folder)
+    run_ok([git, "commit", "-m", "Initial scaffold from project-init"], folder)
+    # Turned on after the first commit, which is the skill's own and needs no checking.
+    run_ok([git, "config", "core.hooksPath", ".githooks"], folder)
 
 
 def push(git: str, folder: Path) -> None:
@@ -250,14 +291,26 @@ def publish(args: argparse.Namespace, folder: Path, plan: Plan) -> str:
     return run_ok([plan.git, "remote", "get-url", "origin"], folder)
 
 
-def set_up_env(name: str, plan: Plan) -> str:
-    """Create the conda environment unless it exists or was skipped. Return what happened."""
+def set_up_env(args: argparse.Namespace, folder: Path, plan: Plan) -> tuple[str, str]:
+    """Create the conda environment unless it exists or was skipped, and install the Python tools.
+
+    Returns:
+        What happened, and an error to report at the end ('' if none). A failure here does not
+        stop the run: the project is still committed and pushed.
+    """
     if plan.conda is None:
-        return "skipped (--no-conda)"
+        return "skipped (--no-conda)", ""
     if plan.has_env:
-        return f"{name} (already existed, kept as it was)"
-    create_env(plan.conda, name)
-    return f"{name} (created, Python 3.12)"
+        status = f"{args.name} (already existed, kept)"
+    else:
+        problem = create_env(plan.conda, args.name)
+        if problem:
+            return "not created", problem
+        status = f"{args.name} (created, Python 3.12)"
+    if "python" not in args.flags:
+        return status, ""
+    problem = install_tools(plan.conda, args.name, folder)
+    return status + ("" if problem else "; Python tools installed and pinned"), problem
 
 
 def add_remote_options(parser: argparse.ArgumentParser) -> None:
@@ -291,14 +344,17 @@ def main() -> int:
     args = parse_args()
     plan = preflight(args, args.folder)
     report = create_project(args, args.folder, plan)
+    env, problem = set_up_env(args, args.folder, plan)
+    commit_project(plan.git, args.folder)
     url = publish(args, args.folder, plan)
-    env = set_up_env(args.name, plan)
     skipped = [line for line in report if line.startswith("skipped")]
     print(f"Set up {args.folder}: {len(report) - len(skipped)} files and folders, committed.")
     if skipped:
         print(f"{len(skipped)} already existed and were kept as they were.")
     print(f"Remote: {url or 'none (local git only)'}")
     print(f"Conda environment: {env}")
+    if problem:
+        raise SystemExit(problem)
     return 0
 
 

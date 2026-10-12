@@ -7,12 +7,35 @@ repository, and pushes.
 
 This repository is the skill's source. Everything the skill needs is inside `skills/project-init/`.
 
+## Contents
+
+- [What it does](#what-it-does)
+- [What a new project gets, and why](#what-a-new-project-gets-and-why)
+  - [Every project](#every-project)
+  - [With the `python` module](#with-the-python-module)
+  - [With the `javascript` module](#with-the-javascript-module)
+  - [With other modules](#with-other-modules)
+- [Stack](#stack)
+- [File structure](#file-structure)
+- [To use the skill to start a new project](#to-use-the-skill-to-start-a-new-project)
+  - [1. Install the skill](#1-install-the-skill)
+  - [2. Set up GitHub](#2-set-up-github)
+  - [3. Set up conda](#3-set-up-conda)
+- [To work on this repository](#to-work-on-this-repository)
+- [How to run](#how-to-run)
+  - [Start a new project with the skill](#start-a-new-project-with-the-skill)
+  - [The scripts alone](#the-scripts-alone)
+- [How to test](#how-to-test)
+  - [The test suite](#the-test-suite)
+  - [Lint and type checks](#lint-and-type-checks)
+  - [Checked in real Claude Code sessions](#checked-in-real-claude-code-sessions)
+
 ## What it does
 
 1. `scripts/init_project.py` checks the folder, git, the `gh` login and conda (and changes nothing
-   if a check fails), runs `git init`, calls the builder, commits, turns on the pre-commit hook,
-   runs `gh repo create`, pushes, and creates a conda environment with the project's name
-   (Python 3.12).
+   if a check fails), runs `git init`, calls the builder, creates a conda environment with the
+   project's name (Python 3.12) and, for a Python project, installs the Python tools into it and
+   pins them, then commits, turns on the pre-commit hook, runs `gh repo create`, and pushes.
 2. `scripts/build_instance.py` splits the master `assets/CLAUDE_GOLDEN.md` into a `CLAUDE.md` of about
    190 lines that always loads, plus `.claude/rules/*.md` files that load only when Claude touches
    matching files. It copies or fills in the other files from `assets/`. Rules a tool can enforce
@@ -21,10 +44,12 @@ This repository is the skill's source. Everything the skill needs is inside `ski
 
 ## What a new project gets, and why
 
-The skill writes files, sets up git and GitHub, and creates an empty conda environment named after
-the project (Python 3.12 only). It installs no packages. The tools the files configure (ruff, mypy,
-pytest, ESLint, TypeScript) are installed by the user afterwards: the skill's report lists them,
-and the new README's Setup says how.
+The skill writes files, sets up git and GitHub, and creates a conda environment named after the
+project (Python 3.12). For a project with the `python` module it also installs the Python tools
+(pytest, pytest-cov, mypy, ruff, python-dotenv) into that environment and pins the versions pip
+actually installed in `requirements.txt`, so the hooks work from the first commit. It installs
+nothing else: the JavaScript tools are installed with `npm install` afterwards, from the pinned
+`package.json`.
 
 The idea behind the files: Claude follows written rules most of the time, but not always, and every
 line of `CLAUDE.md` costs context in every session. So each rule a tool can check goes into that
@@ -37,8 +62,8 @@ tool's config, where it is enforced on every run, and `CLAUDE.md` keeps only wha
 | `CLAUDE.md` | The rules Claude always loads: workflow, project facts, how to work. About 190 lines. | Claude Code reads it at the start of every session. Anthropic advises keeping it under 200 lines: a longer file uses more context and is followed less reliably. |
 | `.claude/rules/*.md` | The other rules, one file per topic, each with `paths:` globs. Which files you get depends on the modules. | A rule file loads only when Claude touches a matching file, so the Python rules cost nothing while Claude edits CSS. |
 | `.claude/settings.json` | Claude Code permissions. Allowed without asking: git status, diff, log, add, commit, push, `check.py` and `cleanup.py`. Asks first: editing `CLAUDE.md`, the spec and this file; installing packages; deleting folders; killing processes. Denied: force push, `git reset --hard`, `git clean`, `git restore`, deleting Docker volumes, and skipping the git hooks (`--no-verify`, `commit -n`, `core.hooksPath`). Each rule is written twice, as `Bash(...)` and `PowerShell(...)`. Also the edit hook: after every `Edit` or `Write`, it runs `scripts/check.py --edited` on that file. | Routine steps run without prompts, and commands that destroy work cannot run at all, even in bypass mode. A rule here is enforced; a rule in `CLAUDE.md` is only advice. On Windows, Claude Code may run commands with its PowerShell tool, which `Bash(...)` rules do not cover. The edit hook makes Claude fix lint errors as it writes, not at the end. |
-| `scripts/check.py`, `scripts/run-check.sh` | The checks: `ruff check`, `ruff format --check` and `mypy` (with `ruff.toml`); `npm run lint` and `npm run typecheck` (with `package.json`). Tests are not run. With `--edited` it checks one file: ruff or ESLint fixes what it can, and the rest goes back to Claude. `run-check.sh` finds the project's conda Python (the active environment, or `envs/<name>` under conda's folder) and runs `check.py` with it. | One command runs every check the extensions show in the editor, and both hooks use it. `python` alone is not reliable in hooks: on Windows it can be the Microsoft Store stub, and Claude Code's shell may not have the environment active. |
-| `.githooks/pre-commit` | Runs `scripts/run-check.sh`. A failing check refuses the commit. `init_project.py` turns it on with `git config core.hooksPath .githooks` after the first commit; after a fresh clone, the new README says to run that once. | Lint and type errors cannot reach the history, from Claude or from you. Until the tools are installed, it refuses every commit and names what is missing. |
+| `scripts/check.py`, `scripts/run-check.sh` | The checks: `ruff check`, `ruff format --check` and `mypy` (with `ruff.toml`); `npm run lint`, `typecheck`, `format:check` (Prettier) and `lint:css` (Stylelint) with `package.json`, each once there are files for it to check. Tests are not run. With `--edited` it checks one file: ruff, ESLint, Stylelint and Prettier fix what they can, and the rest goes back to Claude. `run-check.sh` finds the project's conda Python (the active environment, or `envs/<name>` under conda's folder) and runs `check.py` with it. | One command runs every check the extensions show in the editor, and both hooks use it. `python` alone is not reliable in hooks: on Windows it can be the Microsoft Store stub, and Claude Code's shell may not have the environment active. |
+| `.githooks/pre-commit` | Runs `scripts/run-check.sh`. A failing check refuses the commit. `init_project.py` turns it on with `git config core.hooksPath .githooks` after the first commit; after a fresh clone, the new README says to run that once. | Lint and type errors cannot reach the history, from Claude or from you. If a tool is missing (before `npm install`, for example), it refuses the commit and names the tool. |
 | `.gitattributes` | LF line endings for every text file, on every machine. | The hook scripts fail under `sh` with CRLF endings, which git on Windows (`core.autocrlf=true`) would otherwise give them. |
 | `docs/workflow.md`, `inbox.md`, `spec.md`, `design.md`, `plan.md` | The working loop (copied) and its four documents (filled in with the name and purpose). | Ideas go to the inbox, then the spec and design, then a plan, one milestone at a time. Claude works from these files instead of from memory of past sessions. |
 | `README.md` | Filled in with the name, purpose, stack, folder table, setup, run and test commands. | Every project starts with a README that says how to set it up and run it. |
@@ -56,13 +81,14 @@ tool's config, where it is enforced on every run, and `CLAUDE.md` keeps only wha
 | `ruff.toml` | Linter and formatter config: line length 100, docstrings, type annotations, import order, naming, security checks, no `print` outside `scripts/`, pathlib, and limits on complexity (8), arguments (4) and statements per function (15). | Ruff checks style, common bugs and code smells in well under a second, so Claude can run it after every change. The limits keep functions small. |
 | `mypy.ini` | Type checker config: `strict = True` on `src/`. | Strict typing finds wrong types and missing `None` checks before the code runs, and typed code is easier for Claude to change safely. |
 | `pytest.ini` | Test config: tests live in `tests/`, async tests run without decorators. The test command requires 80% branch coverage. | Tests prove a change works. The coverage floor stops untested code from growing. |
-| `requirements.txt` | Empty apart from a comment naming what to add: pytest, pytest-cov, mypy, ruff, python-dotenv. | Versions are pinned with `==` when the environment is created, from what was actually installed. The skill does not guess versions. |
+| `requirements.txt` | pytest, pytest-cov, mypy, ruff and python-dotenv, each pinned with `==`. With `--no-conda`, or if the install fails, only a comment naming them. | The skill installs the latest versions into the new environment and pins what pip installed, so it never guesses a version, and a clone gets the same tools. |
 
 ### With the `javascript` module
 
 | File | What it is | Why |
 | --- | --- | --- |
-| `package.json` | Dev-only tools, pinned: ESLint, TypeScript, Node types. Scripts: `typecheck`, `lint`, `test`. | The app itself has no dependencies and no build step. These tools only check the code. |
+| `package.json` | Dev-only tools, pinned: ESLint, TypeScript, Node types, Prettier, Stylelint. Scripts: `typecheck`, `lint`, `lint:css`, `format:check`, `test`. Also with `html-css` and `ui-design`. | The app itself has no dependencies and no build step. These tools only check the code. |
+| `.prettierrc.json`, `.stylelintrc.json` | Prettier formats JavaScript, CSS and HTML at line length 100 (as ruff does). Stylelint checks CSS with its standard rules. Also with `html-css` and `ui-design`. | The formatting and CSS the editor extensions show are checked by the hooks too, so they cannot drift. |
 | `tsconfig.json` | Type-checks plain JavaScript (`checkJs`, `strict`) without compiling. | Type errors are found in `.js` files without switching to TypeScript. |
 | `eslint.config.js` | ESLint rules: the same size limits as ruff, `const` over `let`, `===`, no `console` outside `log.js`, no `fetch` outside `api.js`, no `innerHTML`. | It enforces the JavaScript rules from `CLAUDE.md`, including the ones that keep unsafe HTML out. |
 
@@ -217,19 +243,20 @@ Do "To use the skill to start a new project" above once. Then, for each new proj
    | `static-site`, `docker` | a Markdown-to-HTML site, Docker |
 
 5. **Wait for it to finish.** It checks everything first and changes nothing if a check fails.
-   Then it runs `git init`, builds the files, makes the first commit (the whole scaffold), turns
-   on the pre-commit hook, creates the GitHub repository, pushes `main`, and creates the conda
-   environment (about half a minute). It ends by printing the repository URL and the environment.
+   Then it runs `git init`, builds the files, creates the conda environment and installs the
+   Python tools (about a minute), makes the first commit (the whole scaffold), turns on the
+   pre-commit hook, creates the GitHub repository, and pushes `main`. It ends by printing the
+   repository URL and the environment.
 6. **Start a new Claude Code session in the same folder** (a new conversation). `CLAUDE.md`, the
    rules, the permissions and the edit hook were created after the first session began, so only
    a new one loads them. If Claude Code asks whether you trust the folder, say yes: until you do,
    it ignores the project's `allow` rules (the `ask` and `deny` rules still apply).
 7. **Finish the setup** (the skill's report lists these):
-   - Python: open a new VS Code terminal (cmd, with the project's environment active), install
-     `pytest`, `pytest-cov`, `mypy`, `ruff` and `python-dotenv`, and pin their versions in
-     `requirements.txt`. Until they are installed, the pre-commit hook refuses every commit and
-     names what is missing. JavaScript: run `npm install`.
-   - Check that the tools are found. In the same terminal, run:
+   - JavaScript, HTML or CSS: open a new VS Code terminal and run `npm install`. Until then, the
+     pre-commit hook refuses every commit that has web files to check, and says so. (The Python
+     tools are already installed.)
+   - Check that the tools are found. In a new VS Code terminal (cmd, with the project's
+     environment active), run:
 
      ```bat
      python scripts/check.py
@@ -246,7 +273,9 @@ Do "To use the skill to start a new project" above once. Then, for each new proj
 If it stops with an error, nothing was deleted. The usual causes: `gh` is missing or not logged in
 (`winget install GitHub.cli`, then `gh auth login`); the folder holds other files; the repository
 name is taken (rerun with `--name`, or tell the skill another name); git has no `user.name` or
-`user.email`; conda is not installed (install Miniconda, or rerun with `--no-conda`).
+`user.email`; conda is not installed (install Miniconda, or rerun with `--no-conda`). If conda
+or pip fails partway (no network, for example), the project is still committed and pushed, and
+the error says the commands to run by hand.
 
 ### The scripts alone
 
@@ -303,8 +332,9 @@ config, GitHub account and conda environments are never touched.
   private (or `--public`) with the purpose; `--no-github`, `--remote-url`, an existing empty
   repository and an existing `origin` work without calling `gh`; a failed push says how to finish;
   the conda environment is created with the project's name, kept if it exists, skipped with
-  `--no-conda`, and a failed create says how to finish; and each of ten refusals stops with its
-  message and changes nothing in the folder.
+  `--no-conda`, and a failed create says how to finish; a Python project gets its tools installed
+  and pinned in the first commit, other projects get none, and a failed install says how to
+  finish; and each of ten refusals stops with its message and changes nothing in the folder.
 - `test_checks.py`: init turns on the pre-commit hook and marks the hook scripts executable; the
   scripts have LF endings; `check.py` passes on a new project and fails on a lint error; after an
   edit it fixes the file and sends the rest back as a `block` decision, and ignores other files; a
@@ -351,6 +381,10 @@ the suite):
   the JSON `block` decision.
 - The pre-commit hook, with no conda environment active: it found the project's environment
   under Miniconda's folder, refused a commit with a lint error, and accepted it once fixed.
+- The web checks, in a `javascript` + `html-css` project after a real `npm install` of the pinned
+  tools: on an empty project they pass; with `var`, `==`, an unformatted page and an empty CSS
+  block, ESLint, Prettier and Stylelint each fail. After an edit, ESLint and Stylelint fixed what
+  they could, Prettier formatted the file, and only `==` and the empty block went back to Claude.
 
 Also run once by hand: the skill with the real conda, in a scratch folder. It created the
 environment in about 30 seconds, and `conda activate <name>` in cmd then found its Python 3.12.

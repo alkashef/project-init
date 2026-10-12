@@ -399,6 +399,9 @@ commit. Never bypass the hooks (`--no-verify`, `core.hooksPath`).
 ## HTML and CSS
 <!-- B3. Applies when: the project has a browser front end. -->
 
+- Stylelint (`.stylelintrc.json`) checks the CSS and Prettier (`.prettierrc.json`) formats the
+  JavaScript, CSS, and HTML (`npm run lint:css`, `npm run format:check`). Fix findings and never
+  weaken the configuration.
 - Use semantic elements (`header`, `main`, `nav`, `aside`, `article`, `section`, `footer`). Every
   page has a clear `<title>` and one main heading.
 - No `style=""` attributes and no `<style>` blocks. Pass computed values to CSS through custom
