@@ -10,9 +10,6 @@
    - `deadcode/find_unreferenced.py` is a script: lint and type-check it like the others.
    - Neither is installed in `%USERPROFILE%\.claude\skills\`.
 
-1. **Write the line-budget test** (yours): `test_claude_md_fits_the_line_budget` in
-   `tests/test_build_instance.py`. It fails on purpose until it is written.
-
 1. **Run the skill against the real `gh`.** Install it (`winget install GitHub.cli`), then
    `gh auth login` and `gh auth refresh -s delete_repo`. Then run the skill in a scratch folder
    (private repository `project-init-smoke-test`), check the repository, and delete it.

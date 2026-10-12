@@ -70,12 +70,11 @@ def test_vscode_terminal_is_cmd_with_the_conda_environment(tmp_path: Path) -> No
 
 
 def test_claude_md_fits_the_line_budget(full_build: Path) -> None:
-    # CLAUDE.md is loaded into every session, so the skill keeps it under a line budget
-    # (Anthropic advises under 200 lines). `full_build` is a project built with every module.
-    # The rules files in full_build / ".claude" / "rules" load only when Claude touches a
-    # matching file. Decide what to count, and which files the budget covers.
-    claude_md = full_build / "CLAUDE.md"
-    pytest.fail(f"TODO: write the line-budget check for {claude_md}")
+    # CLAUDE.md loads in every session, and Anthropic advises keeping it under 200 lines. Every
+    # line counts, blank ones too, because that is what the advice measures. Only CLAUDE.md is
+    # capped: the rules files load only when Claude touches a matching file.
+    lines = len((full_build / "CLAUDE.md").read_text(encoding="utf-8").splitlines())
+    assert lines < 200, f"CLAUDE.md has {lines} lines; the budget is under 200"
 
 
 def test_dry_run_writes_nothing(tmp_path: Path) -> None:

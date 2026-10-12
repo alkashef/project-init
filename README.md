@@ -187,6 +187,17 @@ are never overwritten unless `build_instance.py` gets `--force`.
 keep its section tags, and keep the always-loaded set (`always_loaded()` in `build_instance.py`)
 under 200 lines once built.
 
+**The line budget.** The built `CLAUDE.md` must have fewer than 200 lines, counting every line,
+blank lines included. It is about 190 now. The test suite checks this on a build with every module.
+
+- *Why every line:* Anthropic's advice to keep `CLAUDE.md` under 200 lines counts the file as it
+  is. Skipping blank lines would let the file pass the test at well over 200 real lines.
+- *Why only `CLAUDE.md`:* it loads in every session. A rules file loads only when Claude touches a
+  matching file, so it has no limit. Keep rules files short anyway: several can load at once (a
+  `.js` file loads both `javascript.md` and `ui-design.md`).
+- *If the test fails:* shorten a section, or move one out of `always_loaded()` into a rules file
+  in `rule_files()`. Do not raise the limit.
+
 ## How to test
 
 ### The test suite
@@ -207,7 +218,7 @@ config, GitHub account and conda environments are never touched.
   into `CLAUDE.md` or a rules file; every `Bash(...)` permission rule has a `PowerShell(...)` twin.
 - `test_build_instance.py`: which files each build writes, no `{{placeholders}}` left, rules files
   start with `paths:`, `--dry-run` writes nothing, a second run keeps existing files, `--force`
-  overwrites, an unknown module is refused, and `CLAUDE.md` fits the line budget.
+  overwrites, an unknown module is refused, and `CLAUDE.md` has fewer than 200 lines (see "The line budget").
 - `test_init_project.py`: a run commits once on `main` and pushes; the repository is created
   private (or `--public`) with the purpose; `--no-github`, `--remote-url`, an existing empty
   repository and an existing `origin` work without calling `gh`; a failed push says how to finish;
