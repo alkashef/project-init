@@ -88,7 +88,6 @@ def template_files() -> dict[str, list[str]]:
             ".githooks/pre-commit",
             ".gitignore",
             "config/.env.example",
-            "docs/blocked.md",
             "docs/workflow.md",
             "scripts/check.py",
             "scripts/cleanup.py",
@@ -149,7 +148,7 @@ def always_folders() -> dict[str, str]:
     return {
         "src/": "All source code.",
         "tests/": "`unit/` and `e2e/` tests.",
-        "docs/": "Workflow, inbox, spec, design, plan, and blocked (why a milestone stopped).",
+        "docs/": "Workflow, inbox, spec, design, and plan.",
         "config/": "`.env` (never committed) and `.env.example`.",
         "scripts/": "`check.py` (the checks), `milestones-runner.py`, `cleanup.py`, setup scripts.",
         ".claude/": "Claude Code settings, including the hook that checks each edit.",

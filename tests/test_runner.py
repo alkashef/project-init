@@ -133,7 +133,16 @@ def test_prompt_names_the_milestone_and_its_commit(built: Path) -> None:
     prompt = runner.build_prompt(runner.Row(3, "Login", "sonnet", "low", "open"))
     assert "milestone M3 (Login) from docs/plan.md" in prompt
     assert "`M3: Login`" in prompt
+    assert "Approval entry" in prompt
     assert "<n>" not in prompt
+
+
+def test_milestone_block_ends_at_the_next_heading(built: Path) -> None:
+    runner = load_runner(built)
+    block = runner.milestone_block(PLAN.splitlines(), 1)
+    assert block[0] == "### M1 — First"
+    assert "- **Refs:** R1." in block
+    assert "### M2 — Second" not in block
 
 
 def test_gitignore_entries_start_on_a_new_line(built: Path, tmp_path: Path) -> None:
@@ -144,20 +153,6 @@ def test_gitignore_entries_start_on_a_new_line(built: Path, tmp_path: Path) -> N
     lines = gitignore.read_text(encoding="utf-8").splitlines()
     assert lines == ["node_modules/", ".claude/logs/"]
     assert not runner.add_ignore_entries(gitignore)
-
-
-def test_new_blocked_file_holds_no_blocker(built: Path) -> None:
-    runner = load_runner(built)
-    assert not runner.has_blocker(built / "docs" / "blocked.md")
-
-
-def test_workflow_blocker_template_is_a_blocker(built: Path, tmp_path: Path) -> None:
-    runner = load_runner(built)
-    workflow = (built / "docs" / "workflow.md").read_text(encoding="utf-8")
-    [heading] = [line for line in workflow.splitlines() if line.startswith("# Blocked: M<n>")]
-    blocked = tmp_path / "blocked.md"
-    blocked.write_text(heading.replace("<n>", "4") + "\n", encoding="utf-8")
-    assert runner.has_blocker(blocked)
 
 
 def test_runner_finishes_every_open_milestone(planned: Sandbox) -> None:
@@ -173,24 +168,49 @@ def test_runner_finishes_every_open_milestone(planned: Sandbox) -> None:
     assert len(timings.splitlines()) == 3
 
 
-def test_runner_stops_at_a_blocked_milestone(planned: Sandbox) -> None:
+def approve(sandbox: Sandbox, decision: str) -> None:
+    """Do what the user does: add an Approval entry to M1, set it to approved, and commit."""
+    plan = sandbox.folder / "docs" / "plan.md"
+    text = plan.read_text(encoding="utf-8").replace("| blocked |", "| approved |")
+    text = text.replace("which database?", f"which database?\n- **Approval:** {decision}")
+    plan.write_text(text, encoding="utf-8")
+    sandbox.git("commit", "-am", "Approve M1")
+
+
+def test_blocked_milestone_is_committed_and_stops_the_run(planned: Sandbox) -> None:
     planned.env["FAKE_CLAUDE_STATE"] = "blocked"
     code, output = run_runner(planned)
     assert code == 1
-    assert "M1 is blocked:" in output
-    assert "# Blocked: M1 (First)" in output
+    assert "M1 waits for your approval." in output
+    assert "### M1 — First" in output
     assert "which database?" in output
+    assert planned.git("log", "-1", "--format=%s") == "M1: blocked"
+    assert planned.remote_head() == planned.git("rev-parse", "HEAD")
     assert len(logged_calls(planned.folder.parent / "claude.log")) == 1
 
 
-def test_runner_will_not_start_with_an_open_blocker(planned: Sandbox) -> None:
-    blocker = "# Blocked: M1 (First)\n\nNeeds a decision.\n"
-    (planned.folder / "docs" / "blocked.md").write_text(blocker, encoding="utf-8")
-    planned.git("commit", "-am", "Record the blocker")
+def test_runner_waits_at_a_blocked_row(planned: Sandbox) -> None:
+    planned.env["FAKE_CLAUDE_STATE"] = "blocked"
+    run_runner(planned)
     code, output = run_runner(planned)
     assert code == 1
-    assert "docs/blocked.md holds an open blocker" in output
-    assert logged_calls(planned.folder.parent / "claude.log") == []
+    assert "M1 waits for your approval." in output
+    assert len(logged_calls(planned.folder.parent / "claude.log")) == 1
+
+
+def test_approved_milestone_runs_again_and_the_run_goes_on(planned: Sandbox) -> None:
+    planned.env["FAKE_CLAUDE_STATE"] = "blocked"
+    run_runner(planned)
+    approve(planned, "Use SQLite.")
+    planned.env["FAKE_CLAUDE_STATE"] = ""
+    code, output = run_runner(planned)
+    assert code == 0, output
+    assert planned.git("log", "-3", "--format=%s").splitlines() == [
+        "M2: Second",
+        "M1: First",
+        "Approve M1",
+    ]
+    assert planned.remote_head() == planned.git("rev-parse", "HEAD")
 
 
 def test_runner_stops_when_a_milestone_does_not_finish(planned: Sandbox) -> None:

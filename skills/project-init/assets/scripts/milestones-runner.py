@@ -2,11 +2,12 @@
 
 Each milestone of the table "Milestones at a glance" runs in a fresh `claude -p` session with the
 model and effort its row names, following the loop of docs/workflow.md. Before the first one, the
-runner checks the conda environment, that docs/blocked.md holds no open blocker, a clean git tree,
-an upstream branch and .gitignore. After each one, it checks that the milestone's row left the
-plan, that git is clean and that everything was pushed; it stops at the first milestone that did
-not finish or that wrote a blocker (a `# Blocked: M<n>` heading) to docs/blocked.md. It
-shows a live status line, logs each session to .claude/logs/M<n>.log, appends a timing to
+runner checks the conda environment, a clean git tree, an upstream branch and .gitignore. After
+each one, it checks that the milestone's row left the plan, that git is clean and that everything
+was pushed. It stops at a row whose Status is `blocked` and at a milestone that sets it, printing
+the milestone's block with its question; the user adds an Approval entry, sets the Status to
+`approved`, commits, and runs again. It also stops at a milestone that did not finish. It shows a
+live status line, logs each session to .claude/logs/M<n>.log, appends a timing to
 .claude/logs/timings.csv, and ends with a summary table.
 
 Does NOT edit the plan, the code or git: the claude session does that. The git pre-commit hook
@@ -42,6 +43,7 @@ REFRESH_SECONDS: Final = 1.0
 OUTCOME_DONE: Final = "done"
 OUTCOME_FAILED: Final = "failed"
 OUTCOME_BLOCKED: Final = "blocked"
+STATUS_BLOCKED: Final = "blocked"  # in the Status column: the milestone waits for an approval
 
 
 @dataclass(frozen=True)
@@ -119,11 +121,6 @@ class Paths:
     def log_dir(self) -> Path:
         """.claude/logs, with one log per milestone."""
         return self.root / ".claude" / "logs"
-
-    @property
-    def blocked(self) -> Path:
-        """docs/blocked.md: "Nothing is blocked.", or the blocker a stopped milestone wrote."""
-        return self.root / "docs" / "blocked.md"
 
     @property
     def gitignore(self) -> Path:
@@ -359,6 +356,23 @@ def plan_has_row(lines: Sequence[str], milestone_id: int) -> bool:
     return any(row.id == milestone_id for row in parse_plan_rows(lines))
 
 
+def plan_row(lines: Sequence[str], milestone_id: int) -> Row | None:
+    """Return the milestone's row of the table "Milestones at a glance", or None if it left."""
+    return next((row for row in parse_plan_rows(lines) if row.id == milestone_id), None)
+
+
+def milestone_block(lines: Sequence[str], milestone_id: int) -> list[str]:
+    """Return the lines of the milestone's `### M<n>` block, up to the next heading."""
+    block: list[str] = []
+    inside = False
+    for line in lines:
+        if re.match(r"^#{1,3} ", line):
+            inside = re.match(rf"^### M{milestone_id}\b", line) is not None
+        if inside:
+            block.append(line)
+    return block
+
+
 def rows_in_range(rows: Sequence[Row], first: int, last: int) -> list[Row]:
     """Return the rows numbered first to last, in table order (not numeric order)."""
     return [row for row in rows if first <= row.id <= last]
@@ -401,10 +415,10 @@ def build_prompt(row: Row) -> str:
     text = " ".join(
         (
             "Implement only milestone M<n> (<title>) from docs/plan.md.",
-            "Follow its block, the loop in docs/workflow.md (step 4) and CLAUDE.md.",
+            "Follow its block, the loop in docs/workflow.md (steps 4 to 6) and CLAUDE.md.",
             "This is an unattended run: nobody can answer questions.",
             "Rules:",
-            "(a) never edit docs/spec.md;",
+            "(a) never edit docs/spec.md, unless the block's Approval entry says to;",
             "(b) in docs/plan.md, when the gate passes, delete the block of M<n> and its row in",
             'the table "Milestones at a glance", and edit nothing else in the plan;',
             "(c) do that edit before the commit so the commit includes it;",
@@ -412,10 +426,14 @@ def build_prompt(row: Row) -> str:
             "then run git push;",
             "(e) if the pre-commit hook refuses the commit, fix the cause; never bypass the hook;",
             "(f) a spec and a design that disagree, any need for a user decision, or any action",
-            "that CLAUDE.md 'Git and destructive actions' forbids: stop without committing, and",
-            "replace docs/blocked.md with the reason and the exact question, in the blocker",
-            "template of docs/workflow.md (first line `# Blocked: M<n> (<title>)`);",
-            "(g) end with the report in CLAUDE.md 'Communication and reporting'.",
+            "that CLAUDE.md 'Git and destructive actions' forbids, which no Approval entry in the",
+            "block permits: stop the milestone. Set its Status in the table to `blocked`, add a",
+            "Blocked entry with the reason and the exact question to its block (template in",
+            "docs/workflow.md), change no other file, commit docs/plan.md alone with the message",
+            "`M<n>: blocked`, and run git push;",
+            "(g) an Approval entry in the block is the user's decision: it permits exactly what it",
+            "says, even an action these rules or CLAUDE.md otherwise forbid, and nothing more;",
+            "(h) end with the report in CLAUDE.md 'Communication and reporting'.",
         )
     )
     return text.replace("<n>", str(row.id)).replace("<title>", row.title)
@@ -511,15 +529,6 @@ def git_has_unpushed(root: Path) -> bool:
     return done.returncode != 0 or int(done.stdout.strip() or "0") > 0
 
 
-def has_blocker(blocked: Path) -> bool:
-    """Tell whether docs/blocked.md holds a blocker: a `# Blocked: M<n>` heading."""
-    if not blocked.exists():
-        return False
-    return any(
-        re.match(r"#\s*Blocked:\s*M\d+", line, re.IGNORECASE) for line in _read_lines(blocked)
-    )
-
-
 def _error(message: str) -> RunStoppedError:
     """Build the stop for a plain error: "ERROR: <message>" in red."""
     return RunStoppedError(f"ERROR: {message}")
@@ -547,20 +556,14 @@ def preflight(paths: Paths) -> None:
         paths: The repository files.
 
     Raises:
-        RunStoppedError: If the conda env is wrong, a blocker is open, git is not clean, the
-            branch has no upstream, or .gitignore had to be changed.
+        RunStoppedError: If the conda env is wrong, git is not clean, the branch has no
+            upstream, or .gitignore had to be changed.
     """
     if not in_project_env(sys.prefix):
         raise _error(
             f"Python runs from '{sys.prefix}', not from the conda env '{ENV_NAME}'. "
             f"Run 'conda activate {ENV_NAME}' first."
         )
-    if has_blocker(paths.blocked):
-        message = (
-            "docs/blocked.md holds an open blocker. Answer it, put the file back to "
-            '"Nothing is blocked.", commit it, and run again:'
-        )
-        raise RunStoppedError(message, _read_lines(paths.blocked), "yellow")
     if not git_is_clean(paths.root):
         raise _error("git status is not clean. Commit or stash your changes first.")
     if not git_has_upstream(paths.root):
@@ -770,11 +773,12 @@ def run_claude(paths: Paths, row: Row) -> ClaudeRun:
 
 
 def failure_reason(paths: Paths, row: Row, run: ClaudeRun) -> str | None:
-    """Return why a finished run does not count as done, or None when every check passes."""
-    if plan_has_row(_read_lines(paths.plan), row.id):
+    """Return why a run that finished or blocked its milestone does not count, or None."""
+    after = plan_row(_read_lines(paths.plan), row.id)
+    if after is not None and after.status != STATUS_BLOCKED:
         return (
-            "its row is still in the plan table, so the commit that finishes it was not made "
-            f"(claude exit code {run.exit_code})."
+            "its row is still in the plan table and not blocked, so the commit that finishes "
+            f"it was not made (claude exit code {run.exit_code})."
         )
     if not git_is_clean(paths.root):
         return "git status is not clean."
@@ -784,22 +788,33 @@ def failure_reason(paths: Paths, row: Row, run: ClaudeRun) -> str | None:
 
 
 def judge(paths: Paths, row: Row, run: ClaudeRun) -> Verdict:
-    """Return done, blocked (docs/blocked.md holds a blocker) or failed (with the reason)."""
-    if has_blocker(paths.blocked):
-        return Verdict(OUTCOME_BLOCKED, "")
+    """Return done (its row left the plan), blocked (its row says so) or failed (with why)."""
     reason = failure_reason(paths, row, run)
-    return Verdict(OUTCOME_DONE, "") if reason is None else Verdict(OUTCOME_FAILED, reason)
+    if reason is not None:
+        return Verdict(OUTCOME_FAILED, reason)
+    if plan_has_row(_read_lines(paths.plan), row.id):
+        return Verdict(OUTCOME_BLOCKED, "")
+    return Verdict(OUTCOME_DONE, "")
+
+
+def waiting_for_approval(paths: Paths, row: Row) -> RunStoppedError:
+    """Build the stop for a blocked milestone: what to do, then its block with the question."""
+    message = (
+        f"M{row.id} waits for your approval. In docs/plan.md, add an Approval entry to its "
+        "block, set its Status to `approved`, commit, and run again:"
+    )
+    return RunStoppedError(message, milestone_block(_read_lines(paths.plan), row.id), "yellow")
 
 
 def stop_for(paths: Paths, row: Row, verdict: Verdict, run: ClaudeRun) -> NoReturn:
     """Stop the run because the milestone did not finish.
 
     Raises:
-        RunStoppedError: Always. It carries the blocked text, or the reason and the last lines
-            of output.
+        RunStoppedError: Always. It carries the blocked milestone's question, or the reason and
+            the last lines of output.
     """
     if verdict.outcome == OUTCOME_BLOCKED:
-        raise RunStoppedError(f"M{row.id} is blocked:", _read_lines(paths.blocked), "yellow")
+        raise waiting_for_approval(paths, row)
     intro = f"Last {TAIL_LINES} lines of output (full log: .claude/logs/M{row.id}.log):"
     tail = [intro, *run.lines[-TAIL_LINES:]]
     raise RunStoppedError(f"M{row.id} stopped: {verdict.reason}", tail)
@@ -847,12 +862,14 @@ def show_range_progress(session: Session, row: Row, run: ClaudeRun) -> None:
         session.console.say(tldr)
 
 
-def prepare_milestone(row: Row) -> None:
+def prepare_milestone(paths: Paths, row: Row) -> None:
     """Check what the milestone needs before claude starts.
 
     Raises:
-        RunStoppedError: If its model or its effort cannot be used.
+        RunStoppedError: If it waits for an approval, or its model or effort cannot be used.
     """
+    if row.status == STATUS_BLOCKED:
+        raise waiting_for_approval(paths, row)
     problem = row_problem(row)
     if problem is not None:
         raise _error(problem)
@@ -910,7 +927,7 @@ def run_all(options: Options, console: Console, paths: Paths, state: RunState) -
         if row is None:
             console.say(f"Range M{first} to M{last} is done.", "green")
             return
-        prepare_milestone(row)
+        prepare_milestone(paths, row)
         run_milestone(session, row)
 
 

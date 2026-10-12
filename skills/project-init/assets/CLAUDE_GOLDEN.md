@@ -258,9 +258,10 @@ the hook files asks the user first; ask only to change a rule on purpose, never 
   `scripts/cleanup.py`. Never touch files outside this repo (except scratch folders you make and
   delete), the paths listed as protected under Project rules, or another program's process.
 - If a task needs a forbidden action, or an approval you cannot get now (a new dependency, an
-  architecture change, a spec change), stop that milestone. Write the reason and the exact question
-  to `docs/blocked.md` (template in `docs/workflow.md`), commit nothing, and ask in chat if the
-  user is present. The user clears it.
+  architecture change, a spec change), stop that milestone: in `docs/plan.md`, set its Status to
+  `blocked` and add a **Blocked** entry with the reason and the exact question (template in
+  `docs/workflow.md`), and ask in chat if the user is present. An **Approval** entry in the block
+  permits exactly what it says, and nothing more.
 
 ## Security and privacy
 <!-- A16. Applies when: always. -->
