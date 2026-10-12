@@ -74,14 +74,18 @@ To change what new projects get, edit `assets/`, not this file.
 
 4. **Report**: the repository URL and the next steps:
    - **Start a new Claude Code session in this folder.** `CLAUDE.md`, the rules, and
-     `.claude/settings.json` were created after this session started, so they load only in a new one.
-     If Claude Code asks whether to trust the folder, say yes: until then it ignores the `allow`
-     rules. VS Code will also offer the recommended extensions.
+     `.claude/settings.json` (permissions and the edit hook) were created after this session
+     started, so they load only in a new one. If Claude Code asks whether to trust the folder,
+     say yes: until then it ignores the `allow` rules.
    - Open a new VS Code terminal: it is cmd, with the project's conda environment active. If it
      says `conda` is not recognized, run `conda init cmd.exe` once and open a new terminal.
    - Python: in that terminal, install `pytest`, `pytest-cov`, `mypy`, `ruff` and
      `python-dotenv`, and pin their versions in `requirements.txt`. The scaffold leaves it empty on
-     purpose, because it does not invent versions. JavaScript: run `npm install`.
+     purpose, because it does not invent versions. JavaScript: run `npm install`. Then run
+     `python scripts/check.py` in that terminal: it prints `All checks passed.` once the tools
+     are found.
+   - Install the recommended VS Code extensions: VS Code may not offer them, because the file
+     appeared after the folder was opened. Extensions view, search `@recommended`.
    - The checks are enforced: after each edit, a Claude Code hook runs ruff or ESLint on the file
      and sends what is left back to Claude, and the git pre-commit hook refuses a commit unless
      every check passes. Until the tools above are installed, it refuses every commit and names

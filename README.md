@@ -221,14 +221,24 @@ Do "To use the skill to start a new project" above once. Then, for each new proj
    on the pre-commit hook, creates the GitHub repository, pushes `main`, and creates the conda
    environment (about half a minute). It ends by printing the repository URL and the environment.
 6. **Start a new Claude Code session in the same folder** (a new conversation). `CLAUDE.md`, the
-   rules and the permissions were created after the first session began, so only a new one loads
-   them. If Claude Code asks whether you trust the folder, say yes: until you do, it ignores the
-   project's `allow` rules (the `ask` and `deny` rules still apply).
+   rules, the permissions and the edit hook were created after the first session began, so only
+   a new one loads them. If Claude Code asks whether you trust the folder, say yes: until you do,
+   it ignores the project's `allow` rules (the `ask` and `deny` rules still apply).
 7. **Finish the setup** (the skill's report lists these):
    - Python: open a new VS Code terminal (cmd, with the project's environment active), install
      `pytest`, `pytest-cov`, `mypy`, `ruff` and `python-dotenv`, and pin their versions in
      `requirements.txt`. Until they are installed, the pre-commit hook refuses every commit and
      names what is missing. JavaScript: run `npm install`.
+   - Check that the tools are found. In the same terminal, run:
+
+     ```bat
+     python scripts/check.py
+     ```
+
+     It should print `All checks passed.` If it names a tool, that tool is not installed yet.
+   - Install the recommended VS Code extensions. VS Code may not offer them, because
+     `.vscode/extensions.json` appeared after the folder was opened: in the Extensions view, search
+     `@recommended` and choose *Install Workspace Recommended Extensions*.
    - Check the **Project** section of `CLAUDE.md` and the layout table in `docs/design.md`.
    - Write your first ideas in `docs/inbox.md`, then tell Claude to go through the inbox. From
      there the loop is in `docs/workflow.md`: inbox, spec and design, plan, one milestone at a time.
