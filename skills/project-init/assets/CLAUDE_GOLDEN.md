@@ -82,7 +82,8 @@ a change pass. Fix the code.
 
 Two hooks run `scripts/check.py`. After each edit, ruff or ESLint fixes the file and reports what is
 left: fix it before moving on. Before each commit, every check runs, and a failure refuses the
-commit. Never bypass the hooks (`--no-verify`, `core.hooksPath`).
+commit. Never bypass the hooks (`--no-verify`, `core.hooksPath`). Editing the check configs or
+the hook files asks the user first; ask only to change a rule on purpose, never to pass a check.
 
 - Each function, class, and module does one thing. If its name needs two verbs, or describing it
   needs "and", split it. Keep functions near 20 lines (15 statements), 4 parameters, and complexity

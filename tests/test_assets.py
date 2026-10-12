@@ -49,6 +49,26 @@ def test_every_edit_is_checked_by_a_hook() -> None:
     assert entry["hooks"][0]["command"].endswith('/scripts/run-check.sh" --edited')
 
 
+def test_check_configs_and_hooks_ask_before_an_edit() -> None:
+    # The hooks enforce these files; loosening one is the easy way to make a check pass.
+    settings = json.loads((bi.assets_dir() / ".claude" / "settings.json").read_text("utf-8"))
+    protected = [
+        "ruff.toml",
+        "mypy.ini",
+        "pytest.ini",
+        "package.json",
+        "tsconfig.json",
+        "eslint.config.js",
+        ".prettierrc.json",
+        ".stylelintrc.json",
+        ".githooks/**",
+        "scripts/check.py",
+        "scripts/run-check.sh",
+    ]
+    ask = settings["permissions"]["ask"]
+    assert [f for f in protected if f"Edit(/{f})" not in ask] == []
+
+
 def test_every_section_id_is_unique() -> None:
     sections = bi.read_sections(bi.assets_dir() / "CLAUDE_GOLDEN.md")
     assert len(sections) == len(golden_ids())
