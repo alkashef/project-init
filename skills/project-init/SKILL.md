@@ -88,7 +88,7 @@ To change what new projects get, edit `assets/`, not this file.
      appeared after the folder was opened. Extensions view, search `@recommended`.
    - The checks are enforced: after each edit, a Claude Code hook runs ruff (or ESLint,
      Stylelint and Prettier) on the file and sends what is left back to Claude, and the git
-     pre-commit hook refuses a commit unless every check passes. Until `npm install` has run, it
+     pre-commit hook refuses a commit unless every check and test passes. Until `npm install` has run, it
      refuses commits that have web files to check, and says so.
    - Write the first ideas in `docs/inbox.md`, then follow `docs/workflow.md`.
    - Review the **Project** section of the new `CLAUDE.md` and the layout table in `docs/design.md`.

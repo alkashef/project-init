@@ -92,7 +92,29 @@ def test_clean_edit_and_other_files_pass(project: Sandbox) -> None:
 
 def test_missing_tool_is_named() -> None:
     reason = load_check().why_not_runnable([sys.executable, "-m", "no_such_tool"])
-    assert "`no_such_tool` is not installed" in reason
+    assert "`no-such-tool` not installed" in reason
+
+
+def write_tested_module(folder: Path, expected: int) -> None:
+    """Write src/calc.py and a test of it that passes when `expected` is 3."""
+    (folder / "src" / "__init__.py").write_text('"""Source."""\n', encoding="utf-8")
+    calc = (
+        '"""Arithmetic."""\n\n\ndef add(a: int, b: int) -> int:\n    """Add."""\n    return a + b\n'
+    )
+    (folder / "src" / "calc.py").write_text(calc, encoding="utf-8")
+    test = f"from src.calc import add\n\n\ndef test_add() -> None:\n    assert add(1, 2) == {expected}\n"
+    (folder / "tests" / "unit" / "test_calc.py").write_text(test, encoding="utf-8")
+
+
+def test_checks_run_the_tests_once_there_are_some(project: Sandbox) -> None:
+    write_tested_module(project.folder, 3)
+    code, output = check(project.folder)
+    assert code == 0, output
+    write_tested_module(project.folder, 4)
+    code, output = check(project.folder)
+    assert code == 2
+    assert "`pytest -q --cov=src --cov-branch --cov-fail-under=80` failed" in output
+    assert "test_add" in output
 
 
 def test_pre_commit_hook_refuses_a_failing_commit(project: Sandbox) -> None:

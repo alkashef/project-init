@@ -1,21 +1,23 @@
-"""Run the project's checks: ruff and mypy for Python; ESLint, tsc, Prettier and Stylelint for web.
+"""Run the project's checks and tests, for Python and for the web.
+
+Python: ruff, mypy, pytest. Web: ESLint, tsc, Prettier, Stylelint, `node --test`.
 
 Two hooks run it, and so can you:
-    python scripts/check.py            # every check. The git pre-commit hook runs this.
+    python scripts/check.py            # everything. The git pre-commit hook runs this.
     python scripts/check.py --edited   # one edited file, with a Claude Code hook's JSON on stdin
 
-The Python checks run when `ruff.toml` exists; mypy once `src/` holds Python. The web checks run
-when `package.json` exists, each once there is something to check: ESLint and tsc (with
-`eslint.config.js`) once `src/` or `tests/` holds JavaScript, Prettier once they hold JavaScript,
-CSS or HTML, Stylelint once `src/` holds CSS. Tests are not run here: they belong to the workflow
-(`docs/workflow.md`).
+Each check runs once there is something for it to check. Python (with `ruff.toml`): ruff always,
+mypy once `src/` holds Python, pytest with the 80% branch-coverage floor once `tests/` holds a
+`test_*.py`. Web (with `package.json`): ESLint and tsc (with `eslint.config.js`) once `src/` or
+`tests/` holds JavaScript, Prettier once they hold JavaScript, CSS or HTML, Stylelint once `src/`
+holds CSS, `node --test` once `tests/` holds a `*.test.js`. A new project with no tests can
+still commit.
 
 The full run exits 2 if anything fails, so that git refuses the commit. With --edited, ruff,
-ESLint, Stylelint and Prettier fix what they can in that one file, and the rest goes back to Claude
-as a JSON `block`
-decision on stdout (exit 0). Claude Code may run hooks in PowerShell, which turns every failing
-exit code into 1, so an exit code alone would not reach Claude. A tool that is not installed fails
-the full run, but is skipped after an edit.
+ESLint, Stylelint and Prettier fix what they can in that one file (tests do not run), and the rest
+goes back to Claude as a JSON `block` decision on stdout (exit 0). Claude Code may run hooks in
+PowerShell, which turns every failing exit code into 1, so an exit code alone would not reach
+Claude. A tool that is not installed fails the full run, but is skipped after an edit.
 """
 
 import argparse
@@ -58,13 +60,21 @@ def has_files(folders: list[str], suffixes: set[str]) -> bool:
     return any(p.suffix in suffixes for folder in folders for p in (ROOT / folder).rglob("*"))
 
 
+def has_tests(pattern: str) -> bool:
+    """Return True if `tests/` holds a file whose name matches the pattern."""
+    return any((ROOT / "tests").rglob(pattern))
+
+
 def python_checks() -> list[list[str]]:
-    """Return the Python checks: lint and format always, types once `src/` holds Python."""
+    """Return the Python checks: lint and format always, types and tests once there are some."""
     if not (ROOT / "ruff.toml").is_file():
         return []
     checks = [python_tool("ruff", "check", "."), python_tool("ruff", "format", "--check", ".")]
     if has_files(["src"], {".py"}):
         checks.append(python_tool("mypy"))
+    if has_tests("test_*.py"):
+        coverage = ["--cov=src", "--cov-branch", "--cov-fail-under=80"]
+        checks.append(python_tool("pytest", "-q", *coverage))
     return checks
 
 
@@ -79,6 +89,8 @@ def web_checks() -> list[list[str]]:
         scripts.append("format:check")
     if has_files(["src"], {".css"}):
         scripts.append("lint:css")
+    if has_tests("*.test.js"):
+        scripts.append("test")
     npm = shutil.which("npm") or "npm"
     return [[npm, "run", script] for script in scripts]
 
@@ -86,8 +98,10 @@ def web_checks() -> list[list[str]]:
 def why_not_runnable(command: list[str]) -> str:
     """Return why a check cannot run (its tool is not installed), or '' if it can."""
     if command[1:2] == ["-m"]:
-        if find_spec(command[2]) is None:
-            return f"`{command[2]}` is not installed in this environment. See the README's Setup."
+        modules = [command[2], *(["pytest_cov"] if "--cov=src" in command else [])]
+        missing = [m.replace("_", "-") for m in modules if find_spec(m) is None]
+        if missing:
+            return f"`{'`, `'.join(missing)}` not installed in this environment. See the README."
         return ""
     if shutil.which(command[0]) is None:
         return f"`{Path(command[0]).name}` is not installed."

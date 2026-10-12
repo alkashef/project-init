@@ -62,8 +62,8 @@ tool's config, where it is enforced on every run, and `CLAUDE.md` keeps only wha
 | `CLAUDE.md` | The rules Claude always loads: workflow, project facts, how to work. About 190 lines. | Claude Code reads it at the start of every session. Anthropic advises keeping it under 200 lines: a longer file uses more context and is followed less reliably. |
 | `.claude/rules/*.md` | The other rules, one file per topic, each with `paths:` globs. Which files you get depends on the modules. | A rule file loads only when Claude touches a matching file, so the Python rules cost nothing while Claude edits CSS. |
 | `.claude/settings.json` | Claude Code permissions. Allowed without asking: git status, diff, log, add, commit, push, `check.py` and `cleanup.py`. Asks first: editing `CLAUDE.md`, the spec and this file; editing the check configs (`ruff.toml`, `mypy.ini`, `pytest.ini`, `package.json`, `tsconfig.json`, `eslint.config.js`, `.prettierrc.json`, `.stylelintrc.json`) and the hook files (`.githooks/`, `scripts/check.py`, `scripts/run-check.sh`), so a check cannot be loosened to make it pass; installing packages; deleting folders; killing processes. Denied: force push, `git reset --hard`, `git clean`, `git restore`, deleting Docker volumes, and skipping the git hooks (`--no-verify`, `commit -n`, `core.hooksPath`). Each rule is written twice, as `Bash(...)` and `PowerShell(...)`. Also the edit hook: after every `Edit` or `Write`, it runs `scripts/check.py --edited` on that file. | Routine steps run without prompts, and commands that destroy work cannot run at all, even in bypass mode. A rule here is enforced; a rule in `CLAUDE.md` is only advice. On Windows, Claude Code may run commands with its PowerShell tool, which `Bash(...)` rules do not cover. The edit hook makes Claude fix lint errors as it writes, not at the end. |
-| `scripts/check.py`, `scripts/run-check.sh` | The checks: `ruff check`, `ruff format --check` and `mypy` (with `ruff.toml`); `npm run lint`, `typecheck`, `format:check` (Prettier) and `lint:css` (Stylelint) with `package.json`, each once there are files for it to check. Tests are not run. With `--edited` it checks one file: ruff, ESLint, Stylelint and Prettier fix what they can, and the rest goes back to Claude. `run-check.sh` finds the project's conda Python (the active environment, or `envs/<name>` under conda's folder) and runs `check.py` with it. | One command runs every check the extensions show in the editor, and both hooks use it. `python` alone is not reliable in hooks: on Windows it can be the Microsoft Store stub, and Claude Code's shell may not have the environment active. |
-| `.githooks/pre-commit` | Runs `scripts/run-check.sh`. A failing check refuses the commit. `init_project.py` turns it on with `git config core.hooksPath .githooks` after the first commit; after a fresh clone, the new README says to run that once. | Lint and type errors cannot reach the history, from Claude or from you. If a tool is missing (before `npm install`, for example), it refuses the commit and names the tool. |
+| `scripts/check.py`, `scripts/run-check.sh` | The checks: `ruff check`, `ruff format --check` and `mypy` (with `ruff.toml`); `npm run lint`, `typecheck`, `format:check` (Prettier) and `lint:css` (Stylelint) with `package.json`, each once there are files for it to check; and the tests: pytest with the 80% branch-coverage floor once `tests/` holds a `test_*.py`, `npm test` once it holds a `*.test.js`. With `--edited` it checks one file: ruff, ESLint, Stylelint and Prettier fix what they can, and the rest goes back to Claude. `run-check.sh` finds the project's conda Python (the active environment, or `envs/<name>` under conda's folder) and runs `check.py` with it. | One command runs every check the extensions show in the editor, and both hooks use it. `python` alone is not reliable in hooks: on Windows it can be the Microsoft Store stub, and Claude Code's shell may not have the environment active. |
+| `.githooks/pre-commit` | Runs `scripts/run-check.sh`. A failing check or test refuses the commit. `init_project.py` turns it on with `git config core.hooksPath .githooks` after the first commit; after a fresh clone, the new README says to run that once. | Lint errors, type errors and failing tests cannot reach the history, from Claude or from you. The workflow already tells Claude to run the tests before a commit; the hook makes sure, for every commit. If a tool is missing (before `npm install`, for example), it refuses the commit and names the tool. |
 | `.gitattributes` | LF line endings for every text file, on every machine. | The hook scripts fail under `sh` with CRLF endings, which git on Windows (`core.autocrlf=true`) would otherwise give them. |
 | `docs/workflow.md`, `inbox.md`, `spec.md`, `design.md`, `plan.md` | The working loop (copied) and its four documents (filled in with the name and purpose). | Ideas go to the inbox, then the spec and design, then a plan, one milestone at a time. Claude works from these files instead of from memory of past sessions. |
 | `README.md` | Filled in with the name, purpose, stack, folder table, setup, run and test commands. | Every project starts with a README that says how to set it up and run it. |
@@ -130,7 +130,7 @@ tests/                          the test suite (not installed with the skill)
   test_assets.py                the assets match what the builder expects
   test_build_instance.py        what the builder writes and leaves alone
   test_init_project.py          init end to end, and every refusal
-  test_checks.py                check.py and both hooks, with the real ruff and mypy
+  test_checks.py                check.py and both hooks, with the real ruff, mypy and pytest
 pytest.ini                      points pytest at tests/ and the skill's scripts
 CLAUDE.md, TODO.md              instructions for working on this repository; open items
 ```
@@ -205,7 +205,7 @@ own environment, not a new project's.
 
    ```bat
    conda activate project-init
-   pip install ruff==0.17.0 mypy pytest
+   pip install ruff==0.17.0 mypy pytest pytest-cov
    ```
 
 3. After that, each time you work here, only activate it:
@@ -339,7 +339,8 @@ config, GitHub account and conda environments are never touched.
 - `test_checks.py`: init turns on the pre-commit hook and marks the hook scripts executable; the
   scripts have LF endings; `check.py` passes on a new project and fails on a lint error; after an
   edit it fixes the file and sends the rest back as a `block` decision, and ignores other files; a
-  missing tool is named; and a real `git commit` is refused by the hook, then accepted once fixed.
+  missing tool is named; the tests run once there are some, and a failing one fails the check; and a
+  real `git commit` is refused by the hook, then accepted once fixed.
 - The built `.vscode/settings.json` makes cmd the default terminal with `conda activate <name>`.
 
 ### Lint and type checks

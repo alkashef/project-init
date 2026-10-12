@@ -81,8 +81,8 @@ Never weaken their configuration, and never add `noqa`, `type: ignore`, or `esli
 a change pass. Fix the code.
 
 Two hooks run `scripts/check.py`. After each edit, ruff or ESLint fixes the file and reports what is
-left: fix it before moving on. Before each commit, every check runs, and a failure refuses the
-commit. Never bypass the hooks (`--no-verify`, `core.hooksPath`). Editing the check configs or
+left: fix it before moving on. Before each commit, every check and test runs, and a failure
+refuses the commit. Never bypass the hooks (`--no-verify`, `core.hooksPath`). Editing the check configs or
 the hook files asks the user first; ask only to change a rule on purpose, never to pass a check.
 
 - Each function, class, and module does one thing. If its name needs two verbs, or describing it
@@ -356,7 +356,7 @@ the hook files asks the user first; ask only to change a rule on purpose, never 
   `conda install`.
 - Checks. Run all of them and fix every failure: `mypy src`, `ruff check .`,
   `ruff format --check .`, and `python -m pytest --cov=src --cov-branch --cov-fail-under=80`.
-  `python scripts/check.py` runs all but the tests.
+  `python scripts/check.py` runs all of them.
   `requirements.txt` lists `pytest`, `pytest-cov`, `mypy`, `ruff`, and `python-dotenv`, plus
   `pytest-asyncio` for async code.
 
