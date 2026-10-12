@@ -18,3 +18,8 @@ repository. Do not use `base`, another project's environment, or the system Pyth
 
 Run commands in it with `conda run -n project-init <command>`, for example
 `conda run -n project-init python skills/project-init/scripts/build_instance.py <folder> --dry-run`.
+
+## Git
+
+Every commit is followed by a sync: pull (`git pull --rebase`), then `git push` to `origin`. Never
+leave a commit only on this machine. If the pull or the push fails, stop and report it.
