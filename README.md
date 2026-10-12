@@ -91,7 +91,6 @@ skills/project-init/            the skill. Install by copying this folder.
     ruff.toml, mypy.ini, pytest.ini                     Python checks
     package.json, tsconfig.json, eslint.config.js       JavaScript checks
     .gitignore, .dockerignore, .claude/settings.json, .vscode/
-skills/code-chef/, skills/deadcode/    other skills. Not part of this project.
 tests/                          the test suite (not installed with the skill)
   fake_gh.py, fake_conda.py     stand in for the GitHub CLI and conda; never touch the real ones
   helpers.py, conftest.py       the sandbox: project folder, bare remote, isolated git config
