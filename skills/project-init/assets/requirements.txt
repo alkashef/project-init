@@ -1,0 +1,3 @@
+# Direct dependencies only, each pinned with == to the installed version.
+# Add when the environment is created: pytest, pytest-cov, mypy, ruff, python-dotenv
+# (and pytest-asyncio for async code).

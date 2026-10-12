@@ -1,0 +1,56 @@
+# Ruff configuration (lint and format). It enforces the rules in CLAUDE.md.
+# Never disable a rule to make a change pass. Fix the code.
+
+line-length = 100
+target-version = "py312"
+src = ["."]
+
+[lint]
+preview = true
+explicit-preview-rules = true
+select = [
+    "E", "W", "F",   # pycodestyle and pyflakes: style, unused names, bare except (E722)
+    "I",             # import order
+    "N",             # naming
+    "D",             # docstrings on modules, classes, public functions
+    "ANN",           # type annotations, no Any (ANN401)
+    "UP",            # modern syntax (list[str], X | None)
+    "B",             # bugbear, including raise ... from err (B904)
+    "C90",           # complexity
+    "PLR",           # too many arguments and statements
+    "PLW",           # global statement, unspecified file encoding
+    "T20",           # no print
+    "BLE",           # no blind except
+    "TRY",           # exception handling style
+    "S",             # security checks
+    "PTH",           # pathlib instead of path strings
+    "ERA",           # no commented-out code
+    "SIM",           # simplifications
+    "TID",           # absolute imports only
+    "ASYNC",         # blocking calls inside async functions
+    "G",             # logging format
+    "PT",            # pytest style
+    "RUF",
+    "PLW1514",       # open text files with an explicit encoding (preview rule)
+]
+ignore = [
+    "TRY003",        # long messages in exceptions are fine (no custom exception classes)
+]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.mccabe]
+max-complexity = 8
+
+[lint.pylint]
+max-args = 4
+max-positional-args = 4
+max-statements = 15   # proxy for "20 lines or fewer": ruff has no line-count rule
+
+[lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[lint.per-file-ignores]
+"tests/**" = ["D", "ANN", "S101", "PLR2004", "PLR0913"]   # tests need no docstrings (see Naming)
+"scripts/**" = ["T20"]                                    # scripts print their output

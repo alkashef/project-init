@@ -1,0 +1,37 @@
+{
+  "editor.formatOnSave": true,
+  "files.encoding": "utf8",
+  "files.eol": "\n",
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "mypy-type-checker.args": ["--config-file=mypy.ini"],
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["tests"],
+  "search.exclude": {
+    "**/models": true,
+    "**/data": true,
+    "**/site": true
+  },
+  "files.watcherExclude": {
+    "**/models/**": true,
+    "**/data/**": true,
+    "**/node_modules/**": true
+  }
+}

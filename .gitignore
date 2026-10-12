@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Claude Code and editor
+.claude/settings.local.json
+# Root only: the leading slash keeps skills/project-init/assets/.vscode/ tracked.
+/.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

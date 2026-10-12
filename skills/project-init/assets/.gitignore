@@ -1,0 +1,33 @@
+# Secrets and settings
+config/.env
+.env
+.claude/settings.local.json
+.claude/blocked.md
+
+# User data, generated data, models, logs
+data/*
+!data/.gitkeep
+models/
+logs/
+*.before-*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# JavaScript
+node_modules/
+
+# Editor and OS
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

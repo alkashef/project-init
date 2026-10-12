@@ -1,0 +1,646 @@
+<!--
+GOLDEN CLAUDE.md (master). Contains every section. HTML comments are not sent to
+Claude.
+
+To use it in a project:
+1. CLAUDE.md = the Project block plus the Part A sections that apply (see each
+   "Applies when"), at 200 lines or fewer.
+2. Each Part B section that applies becomes .claude/rules/<file> with a `paths:`
+   frontmatter, so it loads only when Claude touches a matching file:
+     Python                     python.md       "**/*.py"
+     JavaScript and TypeScript  javascript.md   "**/*.js", "**/*.mjs", "**/*.ts"
+     HTML and CSS               html-css.md     "**/*.html", "**/*.css"
+     UI design                  ui-design.md    "**/*.html", "**/*.css", "**/*.js"
+     HTTP APIs                  http-apis.md    "src/api/**"
+     Data and storage           data.md         "data/**", "src/store/**"
+     CLI apps                   cli.md          "main.py"
+     Static-site builds         static-site.md  "content/**", "site/**", "scripts/build-site.js"
+     MCP servers and hosts      mcp.md          "src/mcp/**"
+     Docker                     docker.md       "Dockerfile", "compose.yaml", ".dockerignore"
+   Adjust the paths to the project's layout in docs/design.md.
+-->
+
+# CLAUDE.md
+
+## Project
+<!-- C1. Fill in for each project. Claude changes this section only after the user approves (see Living docs). -->
+
+- Purpose: {{PURPOSE}}
+- Stack: {{STACK}}
+- Test command: {{TEST_COMMAND}}
+- Run command: {{RUN_COMMAND}}
+- Project rules: {{PROJECT_RULES}} (rules that apply only to this project, including protected paths)
+
+## Identity and source of truth
+<!-- A1. Applies when: always. -->
+
+The objective is clean, maintainable code for humans and machines. Humans can
+read and change it. Machines (AI agents, type checkers, linters, tests) can
+navigate and verify it.
+
+All code is written by AI. Follow every rule in this file exactly.
+
+- `docs/workflow.md`, `docs/inbox.md`, `docs/spec.md`, `docs/design.md` and
+  `docs/plan.md` always exist. `docs/workflow.md` says what each one is for.
+- Requirements live only in `docs/spec.md`. Never implement a requirement that
+  exists only in chat, in code, or in memory.
+- If a request is not covered by the spec, or contradicts it, stop and ask. Do
+  not infer scope.
+- Write the spec in EARS syntax, one requirement per statement:
+  - Ubiquitous: `The <system> shall <response>.`
+  - Event: `When <trigger>, the <system> shall <response>.`
+  - State: `While <state>, the <system> shall <response>.`
+  - Unwanted behavior: `If <condition>, then the <system> shall <response>.`
+  - Optional feature: `Where <feature>, the <system> shall <response>.`
+  - Complex: combine the patterns, for example `While <state>, when <trigger>, ...`.
+- Every requirement has a stable ID `AREA-NNN` (for example `TRI-024`; `NFR-NNN`
+  for non-functional). Every design decision has an ID `DEC-NNN` in
+  `docs/design.md`. Never renumber or reuse an ID. Mark a retired requirement
+  "withdrawn" and keep it.
+- Do not copy spec or design content into this file or into code comments. Cite
+  the ID instead.
+
+## Workflow
+<!-- A2. Applies when: always. Needs docs/workflow.md (master copy: workflow.md). -->
+
+Follow the workflow in @docs/workflow.md exactly.
+
+Do not refactor, rename, or move anything outside the current milestone.
+
+## Communication and reporting
+<!-- A3. Applies when: always. -->
+
+- Be very concise and direct. No narration, no process commentary, no recap
+  beyond the report below.
+- Go top-down: the big picture first (what changed, why it matters), then the
+  details.
+- Handle one thing at a time: one item, one question, one suggestion per
+  message.
+- When you ask the user to decide, give a recommendation and the pros and cons
+  of each choice, very briefly.
+- When discussing requirements, design, the plan, or an approach the user
+  proposes, act as a rigorous critical-thinking partner: challenge assumptions,
+  expose weaknesses and blind spots, test the reasoning, present alternatives,
+  and agree only when the argument is strong.
+  - In the spec, act as a product manager.
+  - In the design, act as a software architect.
+- While executing an approved milestone, do not debate. Flag only blockers and
+  spec conflicts.
+
+End every task that changes files with this report, each item on one line:
+
+- **Files changed:** a list.
+- **Tests added or updated:** a list.
+- **Tests run:** N passed out of M.
+- **Assumptions and open questions:** very concise.
+- **TLDR: what I need to know if I read nothing else.** (last, whole line in bold)
+
+## Code smells
+<!-- A5. Applies when: always. -->
+
+- Each function does one thing. If its name needs two verbs, split it.
+- Target 20 lines or fewer per function body, not counting the docstring. Split
+  any function that is longer.
+- Give a function 4 parameters or fewer. Group values that always travel
+  together into one typed object. Inject long-lived collaborators through the
+  constructor, not through every call.
+- Each class and module does one thing. If describing it needs "and", extract a
+  class. When a file passes about 300 lines, check it for a second
+  responsibility and split it only if you find one.
+- Prefer composition to inheritance.
+- Do not write:
+  - duplicated logic (search for an existing helper first; extract on the
+    second use);
+  - dead code;
+  - abstractions or design patterns the current task does not need;
+  - pass-through wrappers that only forward to another function or class, or
+    classes too small to justify themselves (the single owner of an external
+    system is not a pass-through);
+  - mutable global state.
+- Write code a beginner-to-intermediate programmer can read. Prefer plain
+  constructs to clever ones.
+- Never disable a linter, a type check, or a test to make a change pass. Fix the
+  code.
+
+## Architecture and layers
+<!-- A6. Applies when: always. -->
+
+- The layers and their import rules are defined in `docs/design.md`. Follow
+  them.
+- Before writing code, name the module that owns the change. Before creating a
+  module, state its name, layer, and single responsibility.
+- One module per concern. No monolithic files.
+- Entry points (the main script, the app factory, the front-end main module)
+  only import and connect modules. They hold no logic.
+- Business logic is pure: it imports no HTTP, UI, or database code. Transport
+  and UI layers only translate and delegate.
+- Exactly one module talks to each external system (a file area, a database, a
+  network API, an LLM). Everything else goes through it.
+- A module exposes only what other modules need. It never reaches into another
+  module's internals or state.
+- Pass anything that touches an external system (repository, API client, file
+  writer, LLM client) into the code that uses it, so tests can use fakes. Do not
+  use a dependency-injection framework.
+- Changing a layer, a module boundary, the data model, the public API, or the
+  tech stack needs the user's approval. Record it as a `DEC-NNN` in
+  `docs/design.md`.
+
+## Directory structure
+<!-- A7. Applies when: always. A host that needs files at the repo root (for example GitHub Pages) lists the exception in docs/design.md. -->
+
+| Path | Holds |
+| --- | --- |
+| `src/` | All source code. `docs/design.md` has the detailed layout. |
+| `tests/` | All tests. |
+| `docs/` | `workflow.md`, `inbox.md`, `spec.md`, `design.md`, `plan.md`, and reference material (mockups, source documents). |
+| `config/` | `.env` (never committed) and `.env.example` (committed). |
+| `data/` | Input and runtime data. |
+| `content/` | Markdown source for a static site. Authors edit only this. |
+| `site/` | Generated static site, committed for hosting. Never edited by hand. |
+| `models/` | Downloaded model weights, when a local model loads from disk. Never committed. Path comes from config (`MODELS_DIR`). |
+| `prompts/` | LLM prompt files, when the project calls an LLM. |
+| `scripts/` | Setup, download, and maintenance scripts, including `cleanup.py`, `download_models.py`, and `download_assets.py`. |
+| `.vscode/` | Shared editor settings. |
+| `.claude/` | Claude Code project settings. |
+| Root files | `CLAUDE.md`, `README.md`, `requirements.txt`, `.gitignore`, `main.py` (the entry point, Python), and `Dockerfile`, `compose.yaml`, `.dockerignore` (Docker). |
+
+- All source code lives under `src/`, except the thin entry point `main.py` at
+  the root.
+- Create a folder only when the layout in `docs/design.md` lists it. Update the
+  layout in the same change.
+- Never edit a generated file by hand. Regenerate it with the script that makes
+  it.
+- `scripts/cleanup.py` removes caches and generated artifacts from the repo
+  (for example `__pycache__`, tool caches, logs), by name, wherever they sit. It
+  never deletes source, tests, docs, configuration, input data, or dependencies.
+
+## Naming and code documentation
+<!-- A8. Applies when: always. Name formats and docstring syntax are in the language sections. -->
+
+- Name things for their purpose, not for how they look or how they are built.
+  Use one term per concept, and keep naming consistent across the codebase.
+- Every module, class, and function has a docstring. Tests are exempt: their
+  names carry the requirement ID.
+  - Module: what it does, what it does not do (and which module does), and the
+    requirement or decision IDs it implements.
+  - Class: its single responsibility, stated explicitly, and the state it owns,
+    if any.
+  - Public function: a one-line summary, then its parameters, return value, and
+    errors raised.
+  - Private or trivial function: a one-line summary.
+- Comment only where the behavior is not obvious. Do not narrate the code.
+- Do not leave TODO comments. Report out-of-scope findings under "Assumptions
+  and open questions".
+
+## Configuration and constants
+<!-- A9. Applies when: the project has configurable values. Secrets: see Security and privacy. -->
+
+- Environment settings live in `config/.env`, which is never committed.
+  `config/.env.example` is committed and lists every key. Non-secret keys carry
+  their default; secret keys are empty.
+- `config.py` is the only module that reads `config/.env` or the environment. A
+  real environment variable overrides `config/.env`.
+- Only the entry point imports `config`. It passes values down as arguments,
+  grouped into small typed settings objects per component. No other module reads
+  the environment.
+- The code has no defaults. A missing or invalid value fails clearly at startup.
+- Never write a behavior-affecting value inline: URLs, ports, file paths, model
+  names, thresholds, limits, timeouts. They come from config.
+- Fixed vocabularies (statuses, sources, error codes, review reasons) are enums,
+  or named immutable constants where the language has no enums, in the module
+  that owns them. No other module-level constants.
+- To add a setting, in the same change:
+  1. Add the key to `config/.env.example` (its default, or empty if secret).
+  2. Add the key to `config/.env`.
+  3. Add a typed field to the settings in `config.py`.
+  4. Add a row to the settings table in `docs/design.md`.
+  5. Pass the value in from the entry point.
+
+## Dependencies
+<!-- A10. Applies when: the project uses third-party libraries. Environment commands are in the language sections. -->
+
+- Prefer the standard library. Ask before adding any dependency, and say why the
+  standard library is not enough.
+- Install only into the project's isolated environment. Never install into the
+  global interpreter or a base environment.
+- The dependency file (`requirements.txt`; `package.json` for JavaScript) is the
+  only list of dependencies.
+- Add a library to it in the same change that first imports it. Never import a
+  library that is not listed. Remove it when its last import goes.
+- List direct dependencies only, pinned with `==` to the version installed when
+  it was added. Do not use `pip freeze`.
+- Use only APIs that exist in the pinned version.
+
+## Testing
+<!-- A11. Applies when: the project has automated tests. Test tools and naming syntax are in the language sections. -->
+
+- Every requirement ID has a test at the lowest level that proves it.
+- Every user workflow (an event-driven requirement, `When <trigger>, ...`) has an
+  end-to-end test. End-to-end tests drive the outermost non-browser entry point
+  (the HTTP API, the CLI, or the service), with fakes at the external
+  boundaries. The UI is built by AI and never read by the user, so every
+  requirement that describes a UI workflow also gets one headless-browser test
+  in `tests/e2e/ui/`, run as one of the loop checks. `docs/design.md` chooses
+  the browser tool, and the user approves it under Dependencies.
+- Every new public function in the business-logic layer also has a unit test.
+- Layout: `tests/unit/` for logic with fakes, `tests/e2e/` for workflows. One
+  unit-test file per source module.
+- Requirement coverage is the primary measure. Also measure line and branch
+  coverage on `src/`, with a floor of 80%, as one of the checks in the workflow
+  loop.
+- Test public behavior, not private implementation. One behavior per test. Every
+  test asserts something.
+- Tests are deterministic: seed randomness, no real clock, network, or sleeps,
+  and assert exact outputs.
+- Tests use temporary folders and invented data. They never touch real config,
+  data, or user files, and never need a live LLM or external server.
+- Never weaken or edit an existing test, baseline, or fixture to make it pass.
+  Change one only when its requirement changed, and say so in the report.
+
+## Error handling
+<!-- A12. Applies when: always. Exception syntax is in the language sections. -->
+
+- Catch an exception only at an external boundary (file system, network,
+  database, LLM, subprocess), and only to add context (what was being done, on
+  which resource) and re-raise with the original error attached. Never catch to
+  recover, fall back, or continue.
+- Never use a bare `except`. Never swallow an error.
+- Do not catch unexpected errors. The top level shows the raw error and the full
+  stack trace, logs it, and stops. No friendly message, no retry.
+- Invalid user input is not an error. Handle it as Input validation says.
+- Error messages name what failed and the resource (path, endpoint, ID). They
+  never contain secrets or user content.
+- If other users can reach the app, `docs/design.md` records a `DEC-NNN` that
+  shows a short message and logs the trace instead.
+
+## Logging
+<!-- A13. Applies when: the project runs as an app or service. -->
+
+- Use the language's logging library for diagnostics. Never use `print` for
+  them. A CLI may `print` its intended user output.
+- Configure logging once, in the entry point, from settings. The log level and
+  the log file path come from config. Log to the console and to the file.
+- Write plain text, one line per event, with timestamp, level, and module name.
+- Log startup (with the settings in use, secrets excluded), key events, and
+  failures.
+- Levels: `INFO` for startup and key events, `DEBUG` for payloads and raw
+  external responses, `WARNING` for rejected input, `ERROR` for failures.
+- Never log secrets. Log user content only at `DEBUG`.
+- Log an error once, at the top level. Do not log and re-raise at a boundary.
+
+## LLMs and prompts
+<!-- A14. Applies when: the project calls an LLM. The LLM client module, model names in config, raw responses at DEBUG, and no live LLM in tests are covered in Architecture, Configuration, Logging, and Testing. -->
+
+- A project uses one provider, chosen in `docs/design.md`. Do not build a
+  provider switch unless the spec requires one.
+- Prompts live in files under `prompts/`, never as strings in code. The path to
+  each prompt file comes from config.
+- The model ID, base URL, models folder path, and sampling and token limits come
+  from config. Use an exact model ID, not a moving alias.
+- Treat LLM output as untrusted input. Parse it and validate it against a
+  schema. If it fails, raise an error that includes the raw output. Do not
+  repair it and do not retry.
+- The LLM only produces data. It never executes tools, runs code, or decides
+  transport or server behavior. Code executes the tools.
+- API-hosted model: data leaves the machine. Send only the fields the prompt
+  needs. `docs/design.md` states which data goes to which provider.
+- Local model: the base URL points at localhost. Fail clearly when the server is
+  not running or the model is not pulled. Download models only with
+  `scripts/download_models.py`, never at run time. At run time the app is
+  offline, with telemetry off. Weights live in `models/` and are never
+  committed.
+- The README explains how to set up and check the LLM (server, model, API key)
+  before the first run.
+
+## Git and destructive actions
+<!-- A15. Applies when: always. Commit and push timing is in docs/workflow.md. -->
+
+- Work on `main` unless told otherwise.
+- Never commit `config/.env`, secrets, user data, model weights, exports, logs,
+  or caches. Before the first commit, check that `.gitignore` covers them.
+- Never run `git push --force`, `git reset --hard`, `git clean`, or any
+  `git checkout` or `git restore` that discards changes.
+- Never delete recursively (`rm -rf`, `rmdir /s`, `Remove-Item -Recurse`),
+  except a scratch folder you made in this milestone. Clear caches with
+  `scripts/cleanup.py`.
+- Never touch files outside this repo, except scratch folders you make and
+  delete. Never touch the paths listed as protected under Project rules. Never
+  kill another program's process.
+- If a task needs a forbidden action, or an approval you cannot get now (a new
+  dependency, an architecture change, a spec change), stop that milestone. Write
+  the reason and the exact question to `.claude/blocked.md`, and ask in chat if
+  the user is present. `.claude/blocked.md` is never committed. The user clears
+  it.
+
+## Security and privacy
+<!-- A16. Applies when: always. -->
+
+- Secrets (API keys, tokens, passwords, database IDs) live only in `config/.env`
+  or the platform's secret store. They never appear in code, committed files,
+  logs, error messages, reports, or browser-side code.
+- User data stays on the machine. A flow of user data to an external service (an
+  LLM API, Notion, a cloud store) must be listed in `docs/design.md` as a
+  `DEC-NNN` and approved by the user.
+- Servers listen on `127.0.0.1` unless `docs/design.md` says otherwise.
+  Telemetry is off. At run time the app calls only the services
+  `docs/design.md` lists.
+- Never run, test, or debug against the user's real data. Copy it to a scratch
+  folder, point the process at the copy through environment variables of that
+  process only, and delete the copy afterwards. Reports give counts, never
+  content.
+- Never put real personal data (names, figures, IDs) in source, fixtures, or
+  docs. Use invented data.
+
+## Living docs
+<!-- A17. Applies when: always. -->
+
+- Update every doc a change makes inaccurate in the same change. Be specific:
+  "Added `domain/review.py`: computes Needs Review", not "updated code".
+- Each doc owns one kind of fact. Link to the owner; do not copy.
+
+  | Change | Update |
+  | --- | --- |
+  | Behavior or a requirement | `docs/spec.md`, with the user's approval |
+  | Architecture, data model, settings, directory layout, rules, thresholds | `docs/design.md` |
+  | Setup, how to run, user-visible changes | `README.md` |
+  | A library added or removed | `requirements.txt`, in the same change as the import (see Dependencies) |
+  | New generated files, caches, secrets | `.gitignore` |
+
+- `README.md` always has these sections: What it does, Stack (with versions),
+  File structure (top-level folders, one line each), Setup, How to run, How to
+  test. Setup explains how to install dependencies, configure `config/.env`, and
+  set up and check every external dependency (for example the LLM server,
+  models, API keys) before the first run.
+- Never edit `CLAUDE.md` without the user's approval. When a fact in it goes
+  stale (stack, test command, run command) or a rule needs to change, flag it,
+  propose the exact change, and edit only after approval.
+
+## Long-running work
+<!-- A18. Applies when: the project has tasks that can run long (network or LLM calls, large files, pipelines). -->
+
+- Long-running work never blocks the UI or the request path. Use async I/O for
+  waits, and keep blocking or CPU-heavy work off the main loop.
+- Python: use `async def` and `await` for I/O at the boundaries (API handlers,
+  LLM and network clients). Pure business logic stays synchronous. Never call a
+  blocking function inside `async def`; run it with `asyncio.to_thread`. Async
+  tests use `pytest-asyncio`.
+- JavaScript: use `async`/`await` with `fetch`. Move heavy computation to a Web
+  Worker. Never freeze the main thread.
+- An API request that can run long starts the task and returns `202` with a job
+  ID at once. The task runs in the background as an async task.
+  `GET /api/jobs/<id>` reports its status and progress, and the UI polls it. One
+  object created in `main.py` holds the job state.
+
+## Input validation
+<!-- A19. Applies when: the project accepts user input (forms, API requests, command-line arguments, uploaded files). -->
+
+- Every user input passes through a validation component (a class or module) at
+  the boundary, before any logic uses it. The validation rules live only there,
+  never in handlers, views, or business logic.
+- The component checks type, required fields, length or range, format, and
+  allowed values. It reports every problem at once, naming the field and the
+  rule, never the rejected value.
+- Valid input leaves the component as a typed object. Invalid input is rejected
+  with a clear message about what to fix. It is not an error.
+- The server-side component is the authority. The browser may give fast feedback
+  with native HTML constraint attributes (`required`, `type`, `min`, `max`,
+  `pattern`), and a small validation-view module in JavaScript shows the
+  server's field errors next to the fields. It does not copy the rules.
+- Python: use a Pydantic model for API bodies and a validator class for other
+  inputs. Each rule has a test.
+
+## Python
+<!-- B1. Applies when: the project uses Python. -->
+
+- Naming: `snake_case` for modules, functions, and variables; `PascalCase` for
+  classes; `UPPER_SNAKE_CASE` for enum members. Test files are
+  `test_<module>.py`. Test functions are `test_<requirement id>_<behavior>`, for
+  example `test_tri_024_unsure_duplicate_creates_item`.
+- Types: annotate every parameter and return value, every class attribute, and
+  any variable whose type is not obvious. Use built-in generics and `|`
+  (`list[str]`, `str | None`), not `typing.List` or `Optional`. No `Any` unless
+  a library forces it; then add a comment saying why.
+- Use dataclasses for typed records. Settings are frozen dataclasses.
+- Docstrings use Google style with `Args:`, `Returns:`, and `Raises:` sections.
+  The first line is a one-line summary that ends with a period.
+- Imports go at the top of the file only, as `from src.<module> import <name>`.
+  Every folder under `src/` has an `__init__.py`.
+- Use f-strings. Use `with` for resources. Do not write your own decorators,
+  metaclasses, context managers, or descriptors. Library decorators such as
+  `@dataclass` and `@pytest.fixture` are fine.
+- Prefix internal names with `_`.
+- Open text files with `encoding="utf-8"`. Use `pathlib.Path`, not path strings.
+- Re-raise with `raise ... from err`.
+- A module may define `logger = logging.getLogger(__name__)`. It is the only
+  module-level object besides enums.
+- `main.py` at the repo root is the entry point. It loads config, sets up
+  logging, creates the objects, and starts the app. It holds no logic.
+- `config.py` loads `config/.env` with `python-dotenv`.
+- Use the project's conda environment (its name and Python version are in the
+  README Stack). Conda supplies Python only. Install packages with
+  `pip install -r requirements.txt`, never `conda install`.
+- Checks. Run all of them and fix every failure:
+  - `mypy src`
+  - `ruff check .` and `ruff format --check .`
+  - `python -m pytest --cov=src --cov-branch --cov-fail-under=80`
+- `requirements.txt` lists the check tools: `pytest`, `pytest-cov`, `mypy`,
+  `ruff`, and `python-dotenv`, plus `pytest-asyncio` for async code.
+
+## JavaScript and TypeScript
+<!-- B2. Applies when: the project has JavaScript or TypeScript. -->
+
+- No front-end framework (React, Vue, Angular, and the like) and no UI library,
+  unless `docs/design.md` chooses one. HTML, CSS, and JavaScript stay in
+  separate files.
+- Default: plain JavaScript as ES modules, typed with JSDoc and checked by the
+  TypeScript compiler. Start every file with `// @ts-check`. `tsconfig.json`
+  sets `checkJs` and `strict`. Write TypeScript source only if `docs/design.md`
+  chooses a build toolchain. Either way, write no `any`.
+- The runtime has no dependencies and no build step. A dev-only `package.json`
+  holds `typescript` and `eslint`. Unit tests use `node --test`.
+- Naming: `kebab-case` files, `camelCase` functions and variables, `PascalCase`
+  classes.
+- Every function has JSDoc with `@param {Type}` and `@returns {Type}`, even when
+  it is not exported. These are the types. Describe a shared object shape once
+  with `@typedef`. Every module starts with an `@module` block.
+- Structure mirrors the Architecture rules. `main.js` only imports and connects
+  modules. Keep logic modules (no DOM, no `fetch`) apart from view modules (each
+  owns its own DOM) and `api.js` (the only module that calls `fetch`). Export
+  only the public API. Modules talk through function calls or custom events,
+  never by reaching into another module's DOM or state.
+- Pass collaborators (the api module, storage, the clock) into the functions
+  that use them, so tests can use fakes.
+- No mutable module-level state: no module-level `let` and no mutable
+  module-level objects. Create state in `main.js` and pass it in.
+- Behavior-affecting values (URLs, timeouts, limits) live in one `config.js`
+  that exports a frozen object. Fixed vocabularies are frozen objects in the
+  module that owns them.
+- Errors: `try/catch` only in `api.js`, adding context and rethrowing with
+  `new Error(message, { cause })`. Unexpected errors reach a top-level handler in
+  `main.js` (the `error` and `unhandledrejection` events) that shows the raw
+  error and stack trace on screen and logs it.
+- Logging: one `log.js` wraps `console` with levels taken from config. No other
+  module calls `console`.
+- JavaScript holds behavior only: no HTML markup strings and no styles. Clone
+  `<template>` elements from the HTML or use `createElement`, and toggle CSS
+  classes. Insert dynamic text with `textContent`; never build HTML from data.
+- Never keep app data in `localStorage` or `sessionStorage`; the API is the only
+  source of data. UI preferences may use `localStorage`.
+- ESLint enforces the code-smell limits: 20 lines per function, 4 parameters,
+  and complexity as errors, and 300 lines per file as a warning. Do not disable
+  a rule.
+- Checks. Run all of them and fix every failure: `npx tsc --noEmit`,
+  `npx eslint .`, `node --test`, and the headless-browser tests (the command is
+  in the README under How to test).
+- The UI is built and maintained entirely by AI. Report front-end changes by
+  their behavior in plain language, and prove correctness with the checks.
+
+## HTML and CSS
+<!-- B3. Applies when: the project has a browser front end. -->
+
+- Use semantic elements (`header`, `main`, `nav`, `aside`, `article`, `section`,
+  `footer`). Every page has a clear `<title>` and one main heading.
+- No `style=""` attributes and no `<style>` blocks. Pass computed values to CSS
+  through custom properties set from JavaScript.
+- No `onclick=""` or other inline handlers, and no `<script>` blocks, except the
+  module entry in `index.html`. Attach behavior in JavaScript, using event
+  delegation with `data-` attributes.
+- HTML holds structure only. Markup that JavaScript needs lives in `<template>`
+  elements in the HTML, not in JavaScript strings.
+- Nothing loads from the network: no CDN, no Google Fonts. Store third-party
+  files in the repo. A required external script is listed in `docs/design.md`.
+- Colors, spacing, and fonts come only from custom properties in `theme.css`.
+  Never write a color value in any other file.
+- Keep shared sheets (`theme.css`, base, layout) and add one sheet per view or
+  component only for styles specific to it. Every CSS file starts with a header
+  comment that says what it styles and what it does not.
+- Name CSS classes with BEM, `block__element--modifier`, and by purpose, not
+  appearance (`sidebar__toggle`, not `blue-box`).
+- Avoid duplicate rules, unused classes, excessive specificity, and layout
+  hacks.
+- Use meaningful link text and `alt` text on images. Keep text contrast
+  readable. Do not rely on color alone to convey meaning.
+- Mockups in `docs/` are a visual reference, not code to copy.
+
+## UI design
+<!-- B3a. Applies when: the project has a user interface. -->
+
+- Quick: no unnecessary scripts, fonts, or images. Every action gives immediate
+  feedback, and slow work shows a loading state.
+- Responsive: the layout adapts from phone to wide desktop widths without
+  horizontal scrolling, and content keeps a readable width on large screens.
+- Minimal and uncluttered: show only what the current task needs, with one
+  primary action per view, few colors, and generous whitespace. No decorative
+  effects and no complex animation.
+- Standard layout: header, navigation, main content, and footer, in the usual
+  places. Use native HTML controls (`button`, `a`, `input`, `select`) instead of
+  custom widgets.
+- Every button and icon control has hover text (`title`) that explains what it
+  does. Hover is not the only explanation: an icon-only control also has an
+  `aria-label`, because touch screens have no hover.
+- Prefer the system font stack. Add a custom font or an image only when
+  `docs/design.md` requires it. Download it with `scripts/download_assets.py`
+  into `src/assets/fonts/` or `src/assets/images/`, and commit the files. Never
+  link to a font or an image online. The script records each source URL and
+  license, and only assets whose license allows redistribution are used.
+
+## HTTP APIs
+<!-- B4. Applies when: the project exposes an HTTP API. -->
+
+- Use FastAPI. Handlers are `async def`. The server serves the front end as
+  static files and exposes a JSON API. No server-side HTML templating.
+- A route handler calls one service function and returns the response. It holds
+  no business logic. One router per domain.
+- API paths are `kebab-case` plural nouns under `/api/`, for example
+  `/api/triage-options`. Use GET to read, POST to create, PATCH to update, and
+  DELETE to delete. A `/health` endpoint reports liveness.
+- A Pydantic model validates every request body (see Input validation). Invalid
+  input returns FastAPI's standard 422 `detail`, one entry per problem. Use 404
+  for a missing record and 409 for a conflict, both with a `detail` message.
+- Authentication goes through one shared dependency or decorator, used by every
+  protected endpoint. `docs/design.md` lists the public endpoints.
+- Allowed CORS origins come from config. The default is none.
+- End-to-end tests call the API through the framework's test client against
+  temporary data. They do not start a server.
+
+## Data and storage
+<!-- B5. Applies when: the project reads or writes data files or a data store. -->
+
+- `data/` holds input and runtime data. Code never lives in `data/`, and data
+  never lives in `src/`.
+- Raw input is read-only. Never modify or overwrite an input file. Generated
+  output goes to a separate folder under `data/`, and a script can regenerate
+  it. Caches are disposable.
+- Exactly one module reads and writes each data store or file format. It parses
+  and validates at that boundary and hands typed objects to the rest of the
+  code. No other module parses raw fields.
+- The data folder and file paths come from config. Tests use temporary folders.
+- Document the data model in `docs/design.md`, and update it in the same change
+  that changes the data.
+- Use UUID strings for IDs and ISO 8601 UTC strings for timestamps.
+- Before a change rewrites stored data in place (a migration, an import), copy
+  the data to `<name>.before-<change>`. Never delete these backups.
+
+## CLI apps
+<!-- B6. Applies when: the project has a command-line interface. -->
+
+- Parse arguments with `argparse` in `main.py`, then dispatch to functions. Each
+  flag and step is documented in the README under How to run.
+- Print only the intended user output (results and progress). Diagnostics go to
+  the logger. A progress counter may rewrite one line with `\r` and show counts
+  only.
+- Exit with code 0 on success and a non-zero code on failure. Unexpected errors
+  follow Error handling.
+
+## Static-site builds (Node)
+<!-- B7. Applies when: the project generates a static site from Markdown. -->
+
+- Markdown in `content/` is the source of truth. Authors edit only `content/`.
+- `site/` is generated output, committed for hosting. Never edit it by hand.
+  Regenerate it with `node scripts/build-site.js`. The hand-written template,
+  CSS, and JavaScript live in `src/`, and the build copies them into `site/`.
+- The build script generates every page from one reusable template. It builds
+  the navigation from the content (never hardcoded links), uses relative links
+  only, and names each output file after the content file's slug.
+- The build fails clearly when required metadata is missing, and it skips
+  drafts.
+- `marked` is a build-time dependency only. The generated site has no runtime
+  dependency and renders no Markdown in the browser.
+- The site works without JavaScript for basic reading and navigation.
+- Static files only: no server-side routing, and no environment variables or
+  secrets in browser code.
+- The README explains how to add content, build, preview locally, and publish.
+
+## MCP servers and hosts
+<!-- B8. Applies when: the project is an MCP server or an MCP host. -->
+
+- Use the official MCP Python SDK. A server exposes tools over MCP, never
+  through ad-hoc REST. A host calls tools through an MCP client, never through
+  custom endpoints.
+- Transport: Streamable HTTP on `127.0.0.1`. Use stdio only when the client
+  launches the server itself. Do not use SSE. The server URL and port come from
+  config.
+- Each tool has a typed input schema and a typed result. Tool behavior is
+  deterministic: no LLM inside a server.
+- A host checks that the target tool exists, and handles connection and
+  tool-call failures with explicit errors. The model never executes a tool. The
+  MCP client does (see LLMs and prompts).
+- The MCP client and server calls are async (see Long-running work).
+- End-to-end tests cover server startup, session initialization, tool
+  discovery, tool invocation, and the side effects of each call.
+
+## Docker
+<!-- B9. Applies when: the project uses Docker. -->
+
+- Docker runs the services the app depends on (a database, a vector store) and
+  is used for deployment. During development the app runs from its conda
+  environment.
+- Never run `docker compose down -v`, `docker volume rm`,
+  `docker volume prune`, or `docker system prune`. Docker volumes are protected
+  data.
+- Published ports bind to `127.0.0.1`, for example `127.0.0.1:8000:8000`.
+- Pin the base image tag. Never use `latest`.
+- Never bake secrets or data into an image. They arrive at run time through
+  environment variables and mounted volumes.
+- `.dockerignore` excludes `.env`, `data/`, `models/`, and `.git`.
+- Turn off telemetry in containers (for example `DISABLE_TELEMETRY=true`).
