@@ -84,9 +84,12 @@ def template_files() -> dict[str, list[str]]:
     return {
         "always": [
             ".claude/settings.json",
+            ".gitattributes",
+            ".githooks/pre-commit",
             ".gitignore",
             "config/.env.example",
             "docs/workflow.md",
+            "scripts/check.py",
             "scripts/cleanup.py",
         ],
         "python": ["ruff.toml", "mypy.ini", "pytest.ini", "requirements.txt"],
@@ -104,6 +107,7 @@ def rendered_templates() -> list[str]:
         "docs/design.md",
         "docs/plan.md",
         ".vscode/settings.json",
+        "scripts/run-check.sh",
     ]
 
 
@@ -133,8 +137,9 @@ def always_folders() -> dict[str, str]:
         "tests/": "`unit/` and `e2e/` tests.",
         "docs/": "Workflow, inbox, spec, design, and plan.",
         "config/": "`.env` (never committed) and `.env.example`.",
-        "scripts/": "`cleanup.py` and setup scripts.",
-        ".claude/": "Claude Code settings.",
+        "scripts/": "`check.py` (the checks), `cleanup.py`, and setup scripts.",
+        ".claude/": "Claude Code settings, including the hook that checks each edit.",
+        ".githooks/": "`pre-commit`: refuses a commit unless the checks pass.",
         ".vscode/": "Shared editor settings.",
     }
 
@@ -314,7 +319,8 @@ def write_text(path: Path, text: str, force: bool, dry_run: bool) -> str:
         return "skipped (exists)"
     if not dry_run:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8")
+        # LF on every machine: the shell scripts among these fail with CRLF endings.
+        path.write_text(text, encoding="utf-8", newline="\n")
     return "would write" if dry_run else "written"
 
 

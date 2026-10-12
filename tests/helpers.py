@@ -17,7 +17,10 @@ IDENTITY = "[user]\n\tname = Test User\n\temail = test@example.com\n"
 
 
 def run(
-    command: list[str], cwd: Path | None = None, env: dict[str, str] | None = None
+    command: list[str],
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+    stdin: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Run a command and capture its output. The caller checks the return code."""
     # S603 is ignored on purpose: the tests run only git and the skill's own scripts.
@@ -25,6 +28,7 @@ def run(
         command,
         cwd=cwd,
         env=env,
+        input=stdin,
         capture_output=True,
         text=True,
         encoding="utf-8",

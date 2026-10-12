@@ -1,0 +1,4 @@
+#!/bin/sh
+# Refuses the commit unless the project's checks pass (scripts/check.py).
+# Turned on by `git config core.hooksPath .githooks`, which project-init runs.
+exec sh scripts/run-check.sh

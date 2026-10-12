@@ -54,7 +54,8 @@ To change what new projects get, edit `assets/`, not this file.
    `.vscode`), git and its identity, the `gh` login, that no GitHub repository has that name, and
    that conda is installed; (2) runs `git init -b main` unless the folder is already a repository
    with no commits; (3) runs `build_instance.py`, which keeps any file that already exists;
-   (4) commits; (5) runs `gh repo create` unless `origin` already exists, then pushes `main`;
+   (4) commits, then turns on the pre-commit hook (`git config core.hooksPath .githooks`);
+   (5) runs `gh repo create` unless `origin` already exists, then pushes `main`;
    (6) runs `conda create -n <name> python=3.12` unless that environment already exists. The first
    commit holds the whole scaffold, so the push is never empty. `.vscode/settings.json` makes cmd
    the default VS Code terminal, and each new terminal runs `conda activate <name>`.
@@ -80,7 +81,11 @@ To change what new projects get, edit `assets/`, not this file.
      says `conda` is not recognized, run `conda init cmd.exe` once and open a new terminal.
    - Python: in that terminal, install `pytest`, `pytest-cov`, `mypy`, `ruff` and
      `python-dotenv`, and pin their versions in `requirements.txt`. The scaffold leaves it empty on
-     purpose, because it does not invent versions.
+     purpose, because it does not invent versions. JavaScript: run `npm install`.
+   - The checks are enforced: after each edit, a Claude Code hook runs ruff or ESLint on the file
+     and sends what is left back to Claude, and the git pre-commit hook refuses a commit unless
+     every check passes. Until the tools above are installed, it refuses every commit and names
+     what is missing.
    - Write the first ideas in `docs/inbox.md`, then follow `docs/workflow.md`.
    - Review the **Project** section of the new `CLAUDE.md` and the layout table in `docs/design.md`.
 

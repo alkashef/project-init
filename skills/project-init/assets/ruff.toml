@@ -54,3 +54,4 @@ ban-relative-imports = "all"
 [lint.per-file-ignores]
 "tests/**" = ["D", "ANN", "S101", "PLR2004", "PLR0913"]   # tests need no docstrings (see Naming)
 "scripts/**" = ["T20"]                                    # scripts print their output
+"scripts/check.py" = ["S603"]                             # runs the check tools, without a shell

@@ -1,0 +1,5 @@
+# Every text file is stored and checked out with LF line endings, on every machine. Shell
+# scripts (the git hook, scripts/run-check.sh) fail with CRLF endings.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf

@@ -1,0 +1,5 @@
+# LF everywhere, on every machine. The shell scripts new projects get (the git hook and
+# scripts/run-check.sh) fail with CRLF endings, and the installed skill is copied from a checkout.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf

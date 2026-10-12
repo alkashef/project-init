@@ -16,6 +16,12 @@
 
 {{SETUP}}
 
+After a fresh clone, turn on the pre-commit hook, which refuses a commit unless the checks pass:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## How to run
 
 ```bash

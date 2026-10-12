@@ -80,6 +80,10 @@ Ruff, mypy, and ESLint enforce the limits below (`ruff.toml`, `mypy.ini`, `eslin
 Never weaken their configuration, and never add `noqa`, `type: ignore`, or `eslint-disable` to make
 a change pass. Fix the code.
 
+Two hooks run `scripts/check.py`. After each edit, ruff or ESLint fixes the file and reports what is
+left: fix it before moving on. Before each commit, every check runs, and a failure refuses the
+commit. Never bypass the hooks (`--no-verify`, `core.hooksPath`).
+
 - Each function, class, and module does one thing. If its name needs two verbs, or describing it
   needs "and", split it. Keep functions near 20 lines (15 statements), 4 parameters, and complexity
   8. When a file passes about 300 lines, check it for a second responsibility and split it only if
@@ -351,6 +355,7 @@ a change pass. Fix the code.
   `conda install`.
 - Checks. Run all of them and fix every failure: `mypy src`, `ruff check .`,
   `ruff format --check .`, and `python -m pytest --cov=src --cov-branch --cov-fail-under=80`.
+  `python scripts/check.py` runs all but the tests.
   `requirements.txt` lists `pytest`, `pytest-cov`, `mypy`, `ruff`, and `python-dotenv`, plus
   `pytest-asyncio` for async code.
 

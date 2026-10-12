@@ -9,13 +9,15 @@
       "Bash(git commit *)",
       "Bash(git push *)",
       "Bash(python scripts/cleanup.py *)",
+      "Bash(python scripts/check.py *)",
       "PowerShell(git status *)",
       "PowerShell(git diff *)",
       "PowerShell(git log *)",
       "PowerShell(git add *)",
       "PowerShell(git commit *)",
       "PowerShell(git push *)",
-      "PowerShell(python scripts/cleanup.py *)"
+      "PowerShell(python scripts/cleanup.py *)",
+      "PowerShell(python scripts/check.py *)"
     ],
     "ask": [
       "Edit(/docs/spec.md)",
@@ -53,6 +55,9 @@
       "Bash(git restore *)",
       "Bash(git checkout -- *)",
       "Bash(git checkout .)",
+      "Bash(git *--no-verify*)",
+      "Bash(git commit -n*)",
+      "Bash(git *core.hooksPath*)",
       "Bash(docker volume rm *)",
       "Bash(docker volume prune *)",
       "Bash(docker compose down *-v*)",
@@ -66,11 +71,28 @@
       "PowerShell(git restore *)",
       "PowerShell(git checkout -- *)",
       "PowerShell(git checkout .)",
+      "PowerShell(git *--no-verify*)",
+      "PowerShell(git commit -n*)",
+      "PowerShell(git *core.hooksPath*)",
       "PowerShell(docker volume rm *)",
       "PowerShell(docker volume prune *)",
       "PowerShell(docker compose down *-v*)",
       "PowerShell(docker-compose down *-v*)",
       "PowerShell(docker system prune *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PROJECT_DIR}/scripts/run-check.sh\" --edited",
+            "timeout": 60
+          }
+        ]
+      }
     ]
   }
 }

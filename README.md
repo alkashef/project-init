@@ -1,6 +1,6 @@
 # project-init
 
-A Claude Code skill that sets up a new project. You create an empty folder and open it in VS Code,
+**A Claude Code skill that sets up a new project.** You create an empty folder and open it in VS Code,
 then run the skill. It gives the new project its starting files: `CLAUDE.md` and path-scoped
 rules, docs, README, tool configs and starting folders. Then it commits, creates a GitHub
 repository, and pushes.
@@ -10,8 +10,9 @@ This repository is the skill's source. Everything the skill needs is inside `ski
 ## What it does
 
 1. `scripts/init_project.py` checks the folder, git, the `gh` login and conda (and changes nothing
-   if a check fails), runs `git init`, calls the builder, commits, runs `gh repo create`, pushes,
-   and creates a conda environment with the project's name (Python 3.12).
+   if a check fails), runs `git init`, calls the builder, commits, turns on the pre-commit hook,
+   runs `gh repo create`, pushes, and creates a conda environment with the project's name
+   (Python 3.12).
 2. `scripts/build_instance.py` splits the master `assets/CLAUDE_GOLDEN.md` into a `CLAUDE.md` of about
    190 lines that always loads, plus `.claude/rules/*.md` files that load only when Claude touches
    matching files. It copies or fills in the other files from `assets/`. Rules a tool can enforce
@@ -35,7 +36,10 @@ tool's config, where it is enforced on every run, and `CLAUDE.md` keeps only wha
 | --- | --- | --- |
 | `CLAUDE.md` | The rules Claude always loads: workflow, project facts, how to work. About 190 lines. | Claude Code reads it at the start of every session. Anthropic advises keeping it under 200 lines: a longer file uses more context and is followed less reliably. |
 | `.claude/rules/*.md` | The other rules, one file per topic, each with `paths:` globs. Which files you get depends on the modules. | A rule file loads only when Claude touches a matching file, so the Python rules cost nothing while Claude edits CSS. |
-| `.claude/settings.json` | Claude Code permissions. Allowed without asking: git status, diff, log, add, commit, push, and `cleanup.py`. Asks first: editing `CLAUDE.md`, the spec and this file; installing packages; deleting folders; killing processes. Denied: force push, `git reset --hard`, `git clean`, `git restore`, and deleting Docker volumes. Each rule is written twice, as `Bash(...)` and `PowerShell(...)`. | Routine steps run without prompts, and commands that destroy work cannot run at all, even in bypass mode. A rule here is enforced; a rule in `CLAUDE.md` is only advice. On Windows, Claude Code may run commands with its PowerShell tool, which `Bash(...)` rules do not cover. |
+| `.claude/settings.json` | Claude Code permissions. Allowed without asking: git status, diff, log, add, commit, push, `check.py` and `cleanup.py`. Asks first: editing `CLAUDE.md`, the spec and this file; installing packages; deleting folders; killing processes. Denied: force push, `git reset --hard`, `git clean`, `git restore`, deleting Docker volumes, and skipping the git hooks (`--no-verify`, `commit -n`, `core.hooksPath`). Each rule is written twice, as `Bash(...)` and `PowerShell(...)`. Also the edit hook: after every `Edit` or `Write`, it runs `scripts/check.py --edited` on that file. | Routine steps run without prompts, and commands that destroy work cannot run at all, even in bypass mode. A rule here is enforced; a rule in `CLAUDE.md` is only advice. On Windows, Claude Code may run commands with its PowerShell tool, which `Bash(...)` rules do not cover. The edit hook makes Claude fix lint errors as it writes, not at the end. |
+| `scripts/check.py`, `scripts/run-check.sh` | The checks: `ruff check`, `ruff format --check` and `mypy` (with `ruff.toml`); `npm run lint` and `npm run typecheck` (with `package.json`). Tests are not run. With `--edited` it checks one file: ruff or ESLint fixes what it can, and the rest goes back to Claude. `run-check.sh` finds the project's conda Python (the active environment, or `envs/<name>` under conda's folder) and runs `check.py` with it. | One command runs every check the extensions show in the editor, and both hooks use it. `python` alone is not reliable in hooks: on Windows it can be the Microsoft Store stub, and Claude Code's shell may not have the environment active. |
+| `.githooks/pre-commit` | Runs `scripts/run-check.sh`. A failing check refuses the commit. `init_project.py` turns it on with `git config core.hooksPath .githooks` after the first commit; after a fresh clone, the new README says to run that once. | Lint and type errors cannot reach the history, from Claude or from you. Until the tools are installed, it refuses every commit and names what is missing. |
+| `.gitattributes` | LF line endings for every text file, on every machine. | The hook scripts fail under `sh` with CRLF endings, which git on Windows (`core.autocrlf=true`) would otherwise give them. |
 | `docs/workflow.md`, `inbox.md`, `spec.md`, `design.md`, `plan.md` | The working loop (copied) and its four documents (filled in with the name and purpose). | Ideas go to the inbox, then the spec and design, then a plan, one milestone at a time. Claude works from these files instead of from memory of past sessions. |
 | `README.md` | Filled in with the name, purpose, stack, folder table, setup, run and test commands. | Every project starts with a README that says how to set it up and run it. |
 | `.gitignore` | Ignores secrets (`config/.env`), data, models, logs, caches, `node_modules`, local settings. | Secrets and large or generated files never reach GitHub. |
@@ -87,16 +91,20 @@ skills/project-init/            the skill. Install by copying this folder.
     CLAUDE_GOLDEN.md.646        the master before the cut to the line budget. Reference only.
     docs/                       workflow.md (copied); inbox, spec, design, plan (filled in)
     scripts/cleanup.py          cache cleaner (copied)
+    scripts/check.py            the checks both hooks run (copied)
+    scripts/run-check.sh        finds the project's Python, runs check.py (filled in)
+    .githooks/pre-commit        the git hook (copied)
     README.md, requirements.txt, config/.env.example    (filled in or copied)
     ruff.toml, mypy.ini, pytest.ini                     Python checks
     package.json, tsconfig.json, eslint.config.js       JavaScript checks
-    .gitignore, .dockerignore, .claude/settings.json, .vscode/
+    .gitignore, .gitattributes, .dockerignore, .claude/settings.json, .vscode/
 tests/                          the test suite (not installed with the skill)
   fake_gh.py, fake_conda.py     stand in for the GitHub CLI and conda; never touch the real ones
   helpers.py, conftest.py       the sandbox: project folder, bare remote, isolated git config
   test_assets.py                the assets match what the builder expects
   test_build_instance.py        what the builder writes and leaves alone
   test_init_project.py          init end to end, and every refusal
+  test_checks.py                check.py and both hooks, with the real ruff and mypy
 pytest.ini                      points pytest at tests/ and the skill's scripts
 CLAUDE.md, TODO.md              instructions for working on this repository; open items
 ```
@@ -209,9 +217,9 @@ Do "To use the skill to start a new project" above once. Then, for each new proj
    | `static-site`, `docker` | a Markdown-to-HTML site, Docker |
 
 5. **Wait for it to finish.** It checks everything first and changes nothing if a check fails.
-   Then it runs `git init`, builds the files, makes the first commit (the whole scaffold),
-   creates the GitHub repository, pushes `main`, and creates the conda environment (about half a
-   minute). It ends by printing the repository URL and the environment.
+   Then it runs `git init`, builds the files, makes the first commit (the whole scaffold), turns
+   on the pre-commit hook, creates the GitHub repository, pushes `main`, and creates the conda
+   environment (about half a minute). It ends by printing the repository URL and the environment.
 6. **Start a new Claude Code session in the same folder** (a new conversation). `CLAUDE.md`, the
    rules and the permissions were created after the first session began, so only a new one loads
    them. If Claude Code asks whether you trust the folder, say yes: until you do, it ignores the
@@ -219,7 +227,8 @@ Do "To use the skill to start a new project" above once. Then, for each new proj
 7. **Finish the setup** (the skill's report lists these):
    - Python: open a new VS Code terminal (cmd, with the project's environment active), install
      `pytest`, `pytest-cov`, `mypy`, `ruff` and `python-dotenv`, and pin their versions in
-     `requirements.txt`.
+     `requirements.txt`. Until they are installed, the pre-commit hook refuses every commit and
+     names what is missing. JavaScript: run `npm install`.
    - Check the **Project** section of `CLAUDE.md` and the layout table in `docs/design.md`.
    - Write your first ideas in `docs/inbox.md`, then tell Claude to go through the inbox. From
      there the loop is in `docs/workflow.md`: inbox, spec and design, plan, one milestone at a time.
@@ -286,14 +295,19 @@ config, GitHub account and conda environments are never touched.
   the conda environment is created with the project's name, kept if it exists, skipped with
   `--no-conda`, and a failed create says how to finish; and each of ten refusals stops with its
   message and changes nothing in the folder.
+- `test_checks.py`: init turns on the pre-commit hook and marks the hook scripts executable; the
+  scripts have LF endings; `check.py` passes on a new project and fails on a lint error; after an
+  edit it fixes the file and sends the rest back as a `block` decision, and ignores other files; a
+  missing tool is named; and a real `git commit` is refused by the hook, then accepted once fixed.
 - The built `.vscode/settings.json` makes cmd the default terminal with `conda activate <name>`.
 
 ### Lint and type checks
 
 Use the configs that new projects get, in `assets/`. Run the checks for
 `assets/scripts/cleanup.py` from inside `assets/`, where it sits as it will in a new project. From
-anywhere else, the `scripts/**` exception for `print` does not match it. One line in
-`init_project.py` carries `# noqa: S603` (it exists to run git and gh).
+anywhere else, the `scripts/**` exception for `print` does not match it. The same goes for
+`assets/scripts/check.py`, whose `S603` exception (it runs the check tools) is in `ruff.toml`. One
+line in `init_project.py` carries `# noqa: S603` (it exists to run git and gh).
 
 ```bash
 # from skills/project-init/
@@ -320,6 +334,13 @@ the suite):
 - An `ask` rule (`pip install`) blocks the command when no one can answer the prompt.
 - A reworded command gets past a deny rule: `git -C . clean -n` ran. Deny rules match the command
   text, so they stop mistakes, not a determined workaround.
+- The edit hook: Claude wrote `import os` / `x=1` to `src/sample.py`. The hook removed the import,
+  formatted the rest, and Claude got "Missing docstring in public module" as hook feedback. The
+  first version reported through exit code 2, and Claude saw nothing: Claude Code ran the hook in
+  PowerShell, which turned the exit code into 1 (a non-blocking error, not shown to Claude). Hence
+  the JSON `block` decision.
+- The pre-commit hook, with no conda environment active: it found the project's environment
+  under Miniconda's folder, refused a commit with a lint error, and accepted it once fixed.
 
 Also run once by hand: the skill with the real conda, in a scratch folder. It created the
 environment in about 30 seconds, and `conda activate <name>` in cmd then found its Python 3.12.

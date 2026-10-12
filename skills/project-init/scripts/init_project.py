@@ -3,9 +3,10 @@
 Run it from a new, empty project folder (the folder open in VS Code). Nothing is changed until
 every check passes. Then, in order: `git init` (unless the folder is already a repository with no
 commits), build the scaffold with build_instance.py (CLAUDE.md, rules, docs, configs, starting
-folders), commit, create the GitHub repository (unless `origin` already exists), push, and create
-a conda environment with the project's name (unless one exists). The scaffold files come from the
-skill's `assets/` folder (next to this `scripts/` folder).
+folders), commit, turn on the pre-commit hook (`core.hooksPath`), create the GitHub repository
+(unless `origin` already exists), push, and create a conda environment with the project's name
+(unless one exists). The scaffold files come from the skill's `assets/` folder (next to this
+`scripts/` folder).
 
 Usage:
     python init_project.py --with python http-apis --purpose "Does X"
@@ -197,6 +198,11 @@ def preflight(args: argparse.Namespace, folder: Path) -> Plan:
     return Plan(git, gh, has_repo, has_origin, conda, has_env)
 
 
+def executable_scripts() -> list[str]:
+    """Return the scaffold files that git must mark executable: the hook and its launcher."""
+    return [".githooks/pre-commit", "scripts/run-check.sh"]
+
+
 def create_project(args: argparse.Namespace, folder: Path, plan: Plan) -> list[str]:
     """Start the repository, build the scaffold, and commit it. Return the builder's report."""
     if plan.has_repo:
@@ -205,7 +211,11 @@ def create_project(args: argparse.Namespace, folder: Path, plan: Plan) -> list[s
         run_ok([plan.git, "init", "-b", "main"], folder)
     report = run_ok(build_command(folder, args))
     run_ok([plan.git, "add", "-A"], folder)
+    # Executable in git, so the scripts run as hooks after a clone on Linux or macOS too.
+    run_ok([plan.git, "update-index", "--chmod=+x", *executable_scripts()], folder)
     run_ok([plan.git, "commit", "-m", "Initial scaffold from project-init"], folder)
+    # Turned on after the first commit: the checks need tools the user installs afterwards.
+    run_ok([plan.git, "config", "core.hooksPath", ".githooks"], folder)
     return report.splitlines()
 
 

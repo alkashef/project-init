@@ -42,6 +42,13 @@ def test_every_bash_rule_has_a_powershell_twin() -> None:
         assert bash - powershell == set(), kind
 
 
+def test_every_edit_is_checked_by_a_hook() -> None:
+    settings = json.loads((bi.assets_dir() / ".claude" / "settings.json").read_text("utf-8"))
+    [entry] = settings["hooks"]["PostToolUse"]
+    assert set(entry["matcher"].split("|")) >= {"Edit", "Write"}
+    assert entry["hooks"][0]["command"].endswith('/scripts/run-check.sh" --edited')
+
+
 def test_every_section_id_is_unique() -> None:
     sections = bi.read_sections(bi.assets_dir() / "CLAUDE_GOLDEN.md")
     assert len(sections) == len(golden_ids())
