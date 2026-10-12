@@ -109,7 +109,7 @@ Do not edit it.
 
 ## Setup
 
-### To use the skill
+### To use the skill to start a new project
 
 Do these once per machine.
 
@@ -186,7 +186,7 @@ own environment, not a new project's.
 
 ### Start a new project with the skill
 
-Do "To use the skill" under Setup once. Then, for each new project:
+Do "To use the skill to start a new project" under Setup once. Then, for each new project:
 
 1. **Create an empty folder** for the project, for example `C:\alkashef\GitHub\my-app`, and open it
    in VS Code (File > Open Folder). The folder may hold only `.git`, `.claude` and `.vscode`. A
