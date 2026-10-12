@@ -16,8 +16,11 @@
     --blue-700: #1f4e79;
     --blue-500: #2f6fae;
     --blue-100: #e4edf7;
-    --panel: 230px;
+    --panel-w: 230px;
+    --panel: var(--panel-w);
   }
+
+  body.folded { --panel: 0px; }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -46,22 +49,9 @@
 
   .cover .kicker { color: #9cc3ea; }
 
-  .cover h1 { color: #fff; font-size: clamp(2.4rem, 6vw, 4.4rem); max-width: 16ch; }
-
-  .cover .lead { color: #c9d9ea; }
-
-  .cover .chain { display: flex; flex-wrap: wrap; gap: 8px; }
-
-  .cover .chain span {
-    border: 1px solid rgba(255, 255, 255, .3);
-    border-radius: 999px;
-    padding: 4px 12px;
-    font-size: .9rem;
-    color: #e4edf7;
-  }
+  .cover h1 { color: #fff; font-size: clamp(1.5rem, 4.6vw, 3.6rem); max-width: none; white-space: nowrap; }
 
   .cover blockquote {
-    max-width: 58ch;
     border-left: 3px solid #9cc3ea;
     padding: 4px 0 4px 18px;
     font-size: clamp(1rem, 1.6vw, 1.2rem);
@@ -89,17 +79,55 @@
   nav {
     position: fixed;
     inset: 0 auto 0 0;
-    width: var(--panel);
-    padding: 40px 20px;
+    width: var(--panel-w);
+    padding: 40px 20px 20px;
     background: var(--card);
     border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
     gap: 20px;
     z-index: 2;
+    transition: transform .25s ease, visibility 0s;
   }
 
-  nav .title { font-weight: 700; color: var(--blue-900); line-height: 1.25; }
+  body.folded nav {
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform .25s ease, visibility 0s .25s;
+  }
+
+  nav .title { font-weight: 700; font-size: .88rem; color: var(--blue-900); line-height: 1.25; white-space: nowrap; }
+
+  nav .title small { display: block; margin-top: 2px; font-size: .7rem; font-weight: 400; color: var(--faint); }
+
+  nav .signature { margin-top: auto; font-size: .65rem; color: var(--faint); letter-spacing: .02em; }
+
+  /* Fold button: sits in the panel's top corner, and stays at the screen edge when folded */
+  .panel-toggle {
+    position: fixed;
+    top: 8px;
+    left: calc(var(--panel) - 38px);
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    font: inherit;
+    font-size: 1.3rem;
+    line-height: 1;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    cursor: pointer;
+    z-index: 3;
+    transition: left .25s ease;
+  }
+
+  .panel-toggle:hover { color: var(--blue-700); border-color: var(--blue-500); }
+
+  body.folded .panel-toggle { left: 8px; }
+
+  body.folded .panel-toggle span { transform: rotate(180deg); }
 
   nav ol { list-style: none; display: flex; flex-direction: column; gap: 2px; }
 
@@ -114,7 +142,7 @@
     font-size: .92rem;
   }
 
-  nav a span { color: var(--faint); font-variant-numeric: tabular-nums; }
+  nav a span { color: var(--faint); font-size: .72rem; min-width: 1em; font-variant-numeric: tabular-nums; }
 
   nav a:hover { background: var(--bg); color: var(--ink); }
 
@@ -127,7 +155,7 @@
 
   nav a[aria-current] span { color: var(--blue-500); }
 
-  main { margin-left: var(--panel); }
+  main { margin-left: var(--panel); transition: margin-left .25s ease; }
 
   /* Bottom: back, progress bar, count, next */
   .controls {
@@ -144,6 +172,7 @@
     border-top: 1px solid var(--line);
     backdrop-filter: blur(6px);
     z-index: 2;
+    transition: left .25s ease;
   }
 
   .controls button {
@@ -197,7 +226,6 @@
     font-size: clamp(2rem, 5vw, 3.5rem);
     line-height: 1.1;
     color: var(--blue-900);
-    max-width: 20ch;
   }
 
   h2 {
@@ -210,13 +238,24 @@
 
   p, li, td, th { font-size: clamp(.92rem, 1.3vw, 1.05rem); }
 
-  .lead { font-size: clamp(1rem, 1.7vw, 1.3rem); color: var(--muted); max-width: 62ch; }
+  .lead { font-size: clamp(1rem, 1.7vw, 1.3rem); color: var(--muted); }
 
-  .grid {
-    display: grid;
-    gap: 14px;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-  }
+  /* Slide 1: bullets and sub-bullets, no boxes */
+  .points { list-style: disc; padding-left: 1.2em; }
+
+  .points > li { margin-top: 12px; color: var(--blue-900); font-size: clamp(1.05rem, 1.7vw, 1.3rem); }
+
+  .points > li:first-child { margin-top: 0; }
+
+  .points ul { list-style: circle; padding-left: 1.3em; margin-top: 4px; }
+
+  .points ul li { margin-top: 4px; color: var(--muted); font-size: clamp(.92rem, 1.3vw, 1.05rem); }
+
+  .points ul li b { color: var(--blue-900); }
+
+  .points q { color: var(--ink); font-style: italic; }
+
+  .points cite { font-style: normal; font-size: .85em; color: var(--faint); }
 
   .card {
     background: var(--card);
@@ -240,7 +279,6 @@
     color: var(--blue-900);
     border-radius: 10px;
     padding: 14px 18px;
-    max-width: 75ch;
   }
 
   /* Slide 2: the documents as a flow */
@@ -261,75 +299,35 @@
 
   .flow .step.main { border-top: 4px solid var(--blue-500); }
 
-  .flow .step.side { background: transparent; border-style: dashed; }
+  .flow .step.gate { flex-grow: 1.4; border-color: var(--blue-500); box-shadow: 0 0 0 1px var(--blue-500); }
 
-  .flow .step b { display: block; color: var(--blue-900); }
+  .flow .step > b { display: block; color: var(--blue-900); }
 
   .flow .step small { display: block; color: var(--blue-500); font-weight: 600; margin: 2px 0 6px; }
 
-  .flow .step span { color: var(--muted); font-size: .92rem; }
+  .flow .step em {
+    display: block;
+    font-style: normal;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--blue-900);
+    margin-bottom: 6px;
+  }
+
+  .flow .step p { color: var(--muted); font-size: .92rem; margin-top: 4px; }
+
+  .flow .step p strong { color: var(--blue-900); }
 
   .flow .arrow { align-self: center; color: var(--faint); font-size: 1.4rem; }
 
-  /* Slide 3: the workflow as numbered steps */
-  .steps {
-    list-style: none;
-    counter-reset: step;
-    display: grid;
-    gap: 12px;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-  }
-
-  .steps li {
-    counter-increment: step;
-    position: relative;
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 14px 16px 14px 56px;
-  }
-
-  .steps li::before {
-    content: counter(step);
-    position: absolute;
-    left: 16px;
-    top: 14px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--blue-500);
-    color: #fff;
-    font-weight: 700;
-    font-size: .9rem;
-    display: grid;
-    place-items: center;
-  }
-
-  .steps li.wide { grid-column: 1 / -1; border-left: 4px solid var(--blue-500); }
-
-  .steps li p { color: var(--muted); margin-top: 2px; }
-
-  .substeps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-
-  .substeps span {
-    font-size: .85rem;
-    color: var(--blue-900);
-    background: var(--blue-100);
-    border-radius: 6px;
-    padding: 3px 9px;
-  }
-
-  .substeps span + span::before { content: "\2192\00a0"; color: var(--faint); }
-
-  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-
-  .tags span {
-    font-size: .75rem;
+  /* Slide 3: the workflow as a table */
+  td code {
     font-family: ui-monospace, Consolas, monospace;
+    font-size: .85em;
     color: var(--muted);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 1px 9px;
+    white-space: nowrap;
   }
 
   .always {
@@ -364,11 +362,28 @@
 
   .versus .card ul li { margin: 2px 0; }
 
+  .versus .kind { margin: 2px 0 4px; color: var(--blue-900); }
+
+  .versus .kind b { color: var(--blue-500); text-transform: uppercase; font-size: .78rem; letter-spacing: .12em; }
+
+  sup { font-size: .7em; color: var(--blue-500); font-weight: 600; }
+
+  .footnote {
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    font-size: .8rem;
+    color: var(--muted);
+  }
+
+  .footnote sup { font-size: .85em; }
+
+  .footnote b { color: var(--blue-900); }
+
   .muted { color: var(--muted); }
 
   /* Narrow screens: no side panel; the controls span the width */
   @media (max-width: 860px) {
-    nav { display: none; }
+    nav, .panel-toggle { display: none; }
     main { margin-left: 0; }
     .controls { left: 0; }
   }
@@ -380,7 +395,7 @@
 
   @media print {
     html { scroll-snap-type: none; }
-    nav, .controls { display: none; }
+    nav, .controls, .panel-toggle { display: none; }
     main { margin-left: 0; }
     section { min-height: auto; page-break-after: always; border: 0; }
   }
@@ -388,21 +403,24 @@
 </head>
 <body>
 
-<nav aria-label="Contents">
-  <div class="title">Fully AI-Assisted Coding</div>
+<button type="button" class="panel-toggle" id="panel-toggle" aria-label="Hide contents" aria-expanded="true" aria-controls="contents"><span aria-hidden="true">&lsaquo;</span></button>
+
+<nav id="contents" aria-label="Contents">
+  <div class="title">Fully AI-Assisted Coding<small>A workflow</small></div>
   <ol>
-    <li><a href="#cover" aria-current="true"><span>00</span>Title</a></li>
-    <li><a href="#objective"><span>01</span>Objective</a></li>
-    <li><a href="#documents"><span>02</span>The three documents</a></li>
-    <li><a href="#around"><span>03</span>The workflow</a></li>
-    <li><a href="#tools"><span>04</span>Tools, not prompts</a></li>
+    <li><a href="#cover" aria-current="true"><span>1</span>Title</a></li>
+    <li><a href="#objective"><span>2</span>Objective</a></li>
+    <li><a href="#documents"><span>3</span>The three documents</a></li>
+    <li><a href="#around"><span>4</span>The workflow</a></li>
+    <li><a href="#tools"><span>5</span>Tools, not prompts</a></li>
   </ol>
+  <p class="signature">Ahmad Alkashef &middot; September 2026</p>
 </nav>
 
 <div class="controls">
   <button type="button" id="back" aria-label="Previous slide" disabled>&larr; Back</button>
   <div class="progress" aria-hidden="true"><span></span></div>
-  <span class="count" id="count">0 / 4</span>
+  <span class="count" id="count">1 / 5</span>
   <button type="button" id="next" aria-label="Next slide">Next &rarr;</button>
 </div>
 
@@ -412,10 +430,6 @@
 <section id="cover" class="cover">
   <div class="kicker">A workflow</div>
   <h1>Fully AI-Assisted Coding</h1>
-  <p class="lead">From idea to tested, pushed code. You decide; the AI writes; tools enforce.</p>
-  <div class="chain">
-    <span>Inbox</span><span>Spec</span><span>Design</span><span>Plan</span><span>Code</span><span>Git</span>
-  </div>
   <blockquote>
     &ldquo;It&rsquo;s already happening, the romanticization of handwritten code.&rdquo;
     <cite>DHH, <a href="https://lexfridman.com/dhh-2-transcript/">Lex Fridman Podcast #501</a></cite>
@@ -426,19 +440,28 @@
 <!-- 1. Objective -->
 <section id="objective">
   <div class="kicker">Objective</div>
-  <h1>A high-quality app, A to Z, without writing a line of code.</h1>
+  <h1>A high-quality app, A to Z, zero line of code.</h1>
 
-  <div class="grid">
-    <div class="card"><h3>Correct</h3><p>Every requirement has a test that proves it.</p></div>
-    <div class="card"><h3>Readable</h3><p>Small functions, clear names, types everywhere.</p></div>
-    <div class="card"><h3>Safe</h3><p>No secrets in git. No destructive commands.</p></div>
-    <div class="card"><h3>Maintainable</h3><p>Docs match the code. Git tells the story.</p></div>
-  </div>
-
-  <div class="split">
-    <div class="card accent"><h3>Built for man</h3><p>You read the docs, make the decisions, approve.</p></div>
-    <div class="card accent"><h3>Built for machine</h3><p>The AI reads the same files as its memory and its rules.</p></div>
-  </div>
+  <ul class="points">
+    <li>What does high-quality mean?
+      <ul>
+        <li>Code another human can read, understand and change. Code is read far more often than it is written.</li>
+        <li>Readable names, small functions, simple logic, tests that prove it, comments where the why is not obvious.</li>
+        <li>Systems thinking, and proper commit comments that tell the story.</li>
+        <li>A design that is easy to maintain, to change, over time.</li>
+      </ul>
+    </li>
+    <li>What does high-quality mean now?
+      <ul>
+        <li><b>The same answer, with a second reader.</b> The AI reads the code, the docs and the comments to know what to do. It changes code faster than anyone can re-read it, and every change lands on the last one.</li>
+        <li><b>Maintainability.</b> Small mistakes compound. At Basecamp, each vibe-coded PR looked fine alone; together they <q>destroyed the architecture of the system</q> <cite>(DHH)</cite>. Someone has to protect the architecture, and the code has to be easy to protect.</li>
+        <li><b>Simplicity.</b> <q>beautiful code is easier to understand, it is simpler, it is more malleable</q> <cite>(DHH)</cite>. That holds for the AI too: less to misread, fewer wrong guesses. <q>there is great payoff to writing systems that agents have an easier time dealing with</q> <cite>(DHH)</cite>.</li>
+        <li><b>Comments.</b> Every AI session starts with no memory. The code shows what it does; only a comment or a doc says why.</li>
+        <li><b>Systems thinking.</b> The AI writes the part; a person holds the whole: boundaries, data flow, how the pieces fit.</li>
+        <li><b>Still true:</b> correct, a test for every requirement; safe, no secrets in git, no destructive commands.</li>
+      </ul>
+    </li>
+  </ul>
 
   <p class="lead">What is easy for a person to review is easy for an AI to change.</p>
 </section>
@@ -447,17 +470,26 @@
 <section id="documents">
   <div class="kicker">The three main documents</div>
   <h2>Spec &rarr; Design &rarr; Plan</h2>
+  <p class="lead">This is a workflow. A way of thinking. Your cockpit for coding.</p>
 
   <div class="flow">
-    <div class="step side"><b>Inbox</b><small>Ideas</small><span>Raw, in your words.</span></div>
+    <div class="step main gate">
+      <b>Spec</b><small>What</small><em>A human approves</em>
+      <p>Requirements with IDs. The AI can help write it, interview style.</p>
+      <p>But a human <strong>must</strong> review and approve it. This is the single most important step and the single most important quality gate. It is done by a human, not by the AI.</p>
+    </div>
     <div class="arrow">&rarr;</div>
-    <div class="step main"><b>Spec</b><small>What</small><span>Requirements with IDs. You approve.</span></div>
+    <div class="step main">
+      <b>Design</b><small>How</small><em>A human designs</em>
+      <p>Architecture, data, decisions.</p>
+      <p>Done by a human; the AI assists. It needs senior software engineering experience.</p>
+    </div>
     <div class="arrow">&rarr;</div>
-    <div class="step main"><b>Design</b><small>How</small><span>Architecture, data, decisions.</span></div>
-    <div class="arrow">&rarr;</div>
-    <div class="step main"><b>Plan</b><small>What is left</small><span>Milestones: model, effort, status.</span></div>
-    <div class="arrow">&rarr;</div>
-    <div class="step side"><b>Git</b><small>Done</small><span>The history is the record.</span></div>
+    <div class="step main">
+      <b>Plan</b><small>Implementation</small><em>The AI builds</em>
+      <p>Fully built by the AI.</p>
+      <p>Milestones with their tests, model, effort and status.</p>
+    </div>
   </div>
 
   <div class="split">
@@ -471,41 +503,45 @@
   <div class="kicker">Around the documents</div>
   <h2>The workflow, step by step</h2>
 
-  <ol class="steps">
-    <li>
-      <h3>Inbox</h3>
-      <p>You drop ideas, in your words.</p>
-      <div class="tags"><span>inbox.md</span></div>
-    </li>
-    <li>
-      <h3>Spec and design</h3>
-      <p>The AI asks only what it cannot decide. You approve the spec.</p>
-      <div class="tags"><span>spec.md</span><span>design.md</span></div>
-    </li>
-    <li>
-      <h3>Plan</h3>
-      <p>Milestones, one row each: model, effort, status.</p>
-      <div class="tags"><span>plan.md</span></div>
-    </li>
-    <li class="wide">
-      <h3>Execute</h3>
-      <p>One milestone at a time, each in a fresh AI session:</p>
-      <div class="substeps">
-        <span>Tests first</span><span>See them fail</span><span>Build</span><span>Check</span><span>Update docs</span><span>Remove from plan</span><span>Commit &amp; push</span>
-      </div>
-      <div class="tags"><span>milestone runner</span><span>hooks</span></div>
-    </li>
-    <li>
-      <h3>Blocked</h3>
-      <p>Needs your decision? The question goes in the plan. Nothing else changes.</p>
-      <div class="tags"><span>plan.md</span></div>
-    </li>
-    <li>
-      <h3>Approval</h3>
-      <p>Your answer goes in the plan. Commit, run again.</p>
-      <div class="tags"><span>plan.md</span></div>
-    </li>
-  </ol>
+  <table>
+    <tr><th>Step</th><th>What</th><th>Files</th><th>Why</th></tr>
+    <tr>
+      <td>Inbox</td>
+      <td>You drop ideas, in your words.</td>
+      <td><code>inbox.md</code></td>
+      <td>An idea is saved before it is lost. No format to get right.</td>
+    </tr>
+    <tr>
+      <td>Spec and design</td>
+      <td>The AI asks only what it cannot decide. You approve the spec.</td>
+      <td><code>spec.md</code>, <code>design.md</code></td>
+      <td>What and how are agreed before any code exists. The approved spec is the quality gate.</td>
+    </tr>
+    <tr>
+      <td>Plan</td>
+      <td>Milestones, one row each: tests, model, effort, status.</td>
+      <td><code>plan.md</code></td>
+      <td>Small steps the AI can finish in one session. Progress is visible at a glance.</td>
+    </tr>
+    <tr>
+      <td>Execute</td>
+      <td>One milestone at a time, each in a fresh AI session: tests first &rarr; see them fail &rarr; build &rarr; check &rarr; update docs &rarr; remove from plan &rarr; commit &amp; push.</td>
+      <td>milestone runner, hooks</td>
+      <td>A fresh session keeps the context small. Hooks run the checks, so nothing depends on the AI remembering.</td>
+    </tr>
+    <tr>
+      <td>Blocked</td>
+      <td>Needs your decision? The question goes in the plan. Nothing else changes.</td>
+      <td><code>plan.md</code></td>
+      <td>The AI never guesses at a decision that is yours. The question waits in the repo.</td>
+    </tr>
+    <tr>
+      <td>Approval</td>
+      <td>Your answer goes in the plan. Commit, run again.</td>
+      <td><code>plan.md</code></td>
+      <td>The decision is recorded, so the next run and the next reader know why.</td>
+    </tr>
+  </table>
 
   <div class="always">
     <b>Always on</b>
@@ -525,7 +561,7 @@
   <div class="split">
     <table>
       <tr><th>Tool</th><th>Enforces</th></tr>
-      <tr><td>ruff &middot; ESLint</td><td>Style, smells, small functions (&asymp;20 lines, 4 parameters)</td></tr>
+      <tr><td>ruff &middot; ESLint<sup>1</sup></td><td>Style, smells, small functions (&asymp;20 lines, 4 parameters)</td></tr>
       <tr><td>Prettier &middot; Stylelint</td><td>Formatting, CSS rules</td></tr>
       <tr><td>mypy &middot; tsc</td><td>Strict types</td></tr>
       <tr><td>pytest</td><td>Behavior, 80% branch coverage</td></tr>
@@ -536,6 +572,7 @@
     <div class="versus">
       <div class="card">
         <h3>A prompt is advice</h3>
+        <p class="kind"><b>Probabilistic.</b> The same prompt can give a different result each time.</p>
         <ul>
           <li>Followed most of the time.</li>
           <li>Costs context in every session.</li>
@@ -543,7 +580,8 @@
         </ul>
       </div>
       <div class="card accent">
-        <h3>A linter is a rule</h3>
+        <h3>A linter<sup>1</sup> is a rule</h3>
+        <p class="kind"><b>Deterministic.</b> The same code always gets the same verdict.</p>
         <ul>
           <li>Enforced every time.</li>
           <li>Costs nothing until it fails.</li>
@@ -554,6 +592,8 @@
   </div>
 
   <p class="note">If a tool can check it, it goes in the tool's config. <b>CLAUDE.md</b> keeps only what no tool can check, in under 200 lines.</p>
+
+  <p class="footnote"><sup>1</sup> <b>Linter:</b> a program that reads your code without running it and flags style problems, likely bugs and code smells against a fixed set of rules. Many can also fix what they find. Examples: ruff for Python, ESLint for JavaScript.</p>
 </section>
 
 </main>
@@ -571,7 +611,7 @@
     current = index;
     links.forEach((link, i) => link.toggleAttribute("aria-current", i === index));
     bar.style.width = `${(index / last) * 100}%`;
-    document.getElementById("count").textContent = `${index} / ${last}`;
+    document.getElementById("count").textContent = `${index + 1} / ${last + 1}`;
     document.getElementById("back").disabled = index === 0;
     document.getElementById("next").disabled = index === last;
   }
@@ -587,6 +627,13 @@
     }
   }, { rootMargin: "-50% 0px -50% 0px" });
   slides.forEach((slide) => observer.observe(slide));
+
+  const toggle = document.getElementById("panel-toggle");
+  toggle.addEventListener("click", () => {
+    const folded = document.body.classList.toggle("folded");
+    toggle.setAttribute("aria-expanded", String(!folded));
+    toggle.setAttribute("aria-label", folded ? "Show contents" : "Hide contents");
+  });
 
   document.getElementById("back").addEventListener("click", () => go(-1));
   document.getElementById("next").addEventListener("click", () => go(1));
