@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fully AI-Assisted Coding</title>
+<style>
+  :root {
+    --ink: #1b2a3a;
+    --muted: #5d6b7a;
+    --faint: #8a97a5;
+    --line: #d6dee7;
+    --bg: #f3f5f8;
+    --card: #ffffff;
+    --blue-900: #0f2a47;
+    --blue-700: #1f4e79;
+    --blue-500: #2f6fae;
+    --blue-100: #e4edf7;
+    --panel: 230px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.45;
+  }
+
+  section {
+    scroll-snap-align: start;
+    min-height: 100vh;
+    padding: clamp(28px, 6vw, 72px) clamp(16px, 7vw, 96px) 88px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: clamp(16px, 3vh, 28px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Title slide */
+  .cover { background: linear-gradient(160deg, var(--blue-900), var(--blue-700)); color: #fff; }
+
+  .cover .kicker { color: #9cc3ea; }
+
+  .cover h1 { color: #fff; font-size: clamp(2.4rem, 6vw, 4.4rem); max-width: 16ch; }
+
+  .cover .lead { color: #c9d9ea; }
+
+  .cover .chain { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .cover .chain span {
+    border: 1px solid rgba(255, 255, 255, .3);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: .9rem;
+    color: #e4edf7;
+  }
+
+  .cover blockquote {
+    max-width: 58ch;
+    border-left: 3px solid #9cc3ea;
+    padding: 4px 0 4px 18px;
+    font-size: clamp(1rem, 1.6vw, 1.2rem);
+    font-style: italic;
+    color: #e4edf7;
+  }
+
+  .cover blockquote cite {
+    display: block;
+    margin-top: 8px;
+    font-size: .85rem;
+    font-style: normal;
+    color: #9cc3ea;
+  }
+
+  .cover blockquote a { color: inherit; }
+
+  .cover .byline {
+    font-size: .95rem;
+    color: #c9d9ea;
+    letter-spacing: .02em;
+  }
+
+  /* Left panel: table of contents */
+  nav {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--panel);
+    padding: 40px 20px;
+    background: var(--card);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    z-index: 2;
+  }
+
+  nav .title { font-weight: 700; color: var(--blue-900); line-height: 1.25; }
+
+  nav ol { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+
+  nav a {
+    display: flex;
+    gap: 10px;
+    padding: 8px 10px;
+    border-left: 3px solid transparent;
+    border-radius: 0 6px 6px 0;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: .92rem;
+  }
+
+  nav a span { color: var(--faint); font-variant-numeric: tabular-nums; }
+
+  nav a:hover { background: var(--bg); color: var(--ink); }
+
+  nav a[aria-current] {
+    border-left-color: var(--blue-500);
+    background: var(--blue-100);
+    color: var(--blue-900);
+    font-weight: 600;
+  }
+
+  nav a[aria-current] span { color: var(--blue-500); }
+
+  main { margin-left: var(--panel); }
+
+  /* Bottom: back, progress bar, count, next */
+  .controls {
+    position: fixed;
+    left: var(--panel);
+    right: 0;
+    bottom: 0;
+    height: 56px;
+    padding: 0 clamp(12px, 3vw, 32px);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255, 255, 255, .92);
+    border-top: 1px solid var(--line);
+    backdrop-filter: blur(6px);
+    z-index: 2;
+  }
+
+  .controls button {
+    font: inherit;
+    font-size: .9rem;
+    color: var(--blue-700);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  .controls button:hover:not(:disabled) { background: var(--blue-100); border-color: var(--blue-500); }
+
+  .controls button:disabled { opacity: .4; cursor: default; }
+
+  .progress {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line);
+    overflow: hidden;
+  }
+
+  .progress span {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--blue-500);
+    transition: width .3s ease;
+  }
+
+  .count {
+    font-size: .8rem;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+    min-width: 3.5em;
+    text-align: center;
+  }
+
+  .kicker {
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--blue-500);
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    line-height: 1.1;
+    color: var(--blue-900);
+    max-width: 20ch;
+  }
+
+  h2 {
+    font-size: clamp(1.6rem, 3.6vw, 2.5rem);
+    line-height: 1.15;
+    color: var(--blue-900);
+  }
+
+  h3 { font-size: 1rem; color: var(--blue-700); }
+
+  p, li, td, th { font-size: clamp(.92rem, 1.3vw, 1.05rem); }
+
+  .lead { font-size: clamp(1rem, 1.7vw, 1.3rem); color: var(--muted); max-width: 62ch; }
+
+  .grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .card p { color: var(--muted); margin-top: 4px; }
+
+  .card.accent { border-left: 4px solid var(--blue-500); }
+
+  .split {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  }
+
+  .note {
+    background: var(--blue-100);
+    color: var(--blue-900);
+    border-radius: 10px;
+    padding: 14px 18px;
+    max-width: 75ch;
+  }
+
+  /* Slide 2: the documents as a flow */
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .flow .step {
+    flex: 1 1 150px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .flow .step.main { border-top: 4px solid var(--blue-500); }
+
+  .flow .step.side { background: transparent; border-style: dashed; }
+
+  .flow .step b { display: block; color: var(--blue-900); }
+
+  .flow .step small { display: block; color: var(--blue-500); font-weight: 600; margin: 2px 0 6px; }
+
+  .flow .step span { color: var(--muted); font-size: .92rem; }
+
+  .flow .arrow { align-self: center; color: var(--faint); font-size: 1.4rem; }
+
+  /* Slide 3: the workflow as numbered steps */
+  .steps {
+    list-style: none;
+    counter-reset: step;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  }
+
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px 14px 56px;
+  }
+
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 16px;
+    top: 14px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--blue-500);
+    color: #fff;
+    font-weight: 700;
+    font-size: .9rem;
+    display: grid;
+    place-items: center;
+  }
+
+  .steps li.wide { grid-column: 1 / -1; border-left: 4px solid var(--blue-500); }
+
+  .steps li p { color: var(--muted); margin-top: 2px; }
+
+  .substeps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+  .substeps span {
+    font-size: .85rem;
+    color: var(--blue-900);
+    background: var(--blue-100);
+    border-radius: 6px;
+    padding: 3px 9px;
+  }
+
+  .substeps span + span::before { content: "\2192\00a0"; color: var(--faint); }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+  .tags span {
+    font-size: .75rem;
+    font-family: ui-monospace, Consolas, monospace;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 1px 9px;
+  }
+
+  .always {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    align-items: baseline;
+    font-size: .9rem;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+  }
+
+  .always b { color: var(--blue-700); text-transform: uppercase; font-size: .75rem; letter-spacing: .12em; }
+
+  .always i { font-style: normal; font-weight: 600; color: var(--blue-900); margin-right: 4px; }
+
+  /* Slide 4: table */
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+
+  th { text-align: left; color: var(--blue-700); background: var(--blue-100); font-weight: 600; }
+
+  th, td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+
+  tr:last-child td { border-bottom: 0; }
+
+  td:first-child { font-weight: 600; color: var(--blue-900); white-space: nowrap; }
+
+  .versus { display: grid; gap: 10px; }
+
+  .versus .card ul { margin-top: 6px; padding-left: 18px; color: var(--muted); }
+
+  .versus .card ul li { margin: 2px 0; }
+
+  .muted { color: var(--muted); }
+
+  /* Narrow screens: no side panel; the controls span the width */
+  @media (max-width: 860px) {
+    nav { display: none; }
+    main { margin-left: 0; }
+    .controls { left: 0; }
+  }
+
+  @media (max-width: 560px) {
+    .flow .arrow { transform: rotate(90deg); flex-basis: 100%; text-align: center; }
+    td:first-child { white-space: normal; }
+  }
+
+  @media print {
+    html { scroll-snap-type: none; }
+    nav, .controls { display: none; }
+    main { margin-left: 0; }
+    section { min-height: auto; page-break-after: always; border: 0; }
+  }
+</style>
+</head>
+<body>
+
+<nav aria-label="Contents">
+  <div class="title">Fully AI-Assisted Coding</div>
+  <ol>
+    <li><a href="#cover" aria-current="true"><span>00</span>Title</a></li>
+    <li><a href="#objective"><span>01</span>Objective</a></li>
+    <li><a href="#documents"><span>02</span>The three documents</a></li>
+    <li><a href="#around"><span>03</span>The workflow</a></li>
+    <li><a href="#tools"><span>04</span>Tools, not prompts</a></li>
+  </ol>
+</nav>
+
+<div class="controls">
+  <button type="button" id="back" aria-label="Previous slide" disabled>&larr; Back</button>
+  <div class="progress" aria-hidden="true"><span></span></div>
+  <span class="count" id="count">0 / 4</span>
+  <button type="button" id="next" aria-label="Next slide">Next &rarr;</button>
+</div>
+
+<main>
+
+<!-- 0. Title -->
+<section id="cover" class="cover">
+  <div class="kicker">A workflow</div>
+  <h1>Fully AI-Assisted Coding</h1>
+  <p class="lead">From idea to tested, pushed code. You decide; the AI writes; tools enforce.</p>
+  <div class="chain">
+    <span>Inbox</span><span>Spec</span><span>Design</span><span>Plan</span><span>Code</span><span>Git</span>
+  </div>
+  <blockquote>
+    &ldquo;It&rsquo;s already happening, the romanticization of handwritten code.&rdquo;
+    <cite>DHH, <a href="https://lexfridman.com/dhh-2-transcript/">Lex Fridman Podcast #501</a></cite>
+  </blockquote>
+  <p class="byline">Ahmad Alkashef &middot; September 2026</p>
+</section>
+
+<!-- 1. Objective -->
+<section id="objective">
+  <div class="kicker">Objective</div>
+  <h1>A high-quality app, A to Z, without writing a line of code.</h1>
+
+  <div class="grid">
+    <div class="card"><h3>Correct</h3><p>Every requirement has a test that proves it.</p></div>
+    <div class="card"><h3>Readable</h3><p>Small functions, clear names, types everywhere.</p></div>
+    <div class="card"><h3>Safe</h3><p>No secrets in git. No destructive commands.</p></div>
+    <div class="card"><h3>Maintainable</h3><p>Docs match the code. Git tells the story.</p></div>
+  </div>
+
+  <div class="split">
+    <div class="card accent"><h3>Built for man</h3><p>You read the docs, make the decisions, approve.</p></div>
+    <div class="card accent"><h3>Built for machine</h3><p>The AI reads the same files as its memory and its rules.</p></div>
+  </div>
+
+  <p class="lead">What is easy for a person to review is easy for an AI to change.</p>
+</section>
+
+<!-- 2. The three main documents -->
+<section id="documents">
+  <div class="kicker">The three main documents</div>
+  <h2>Spec &rarr; Design &rarr; Plan</h2>
+
+  <div class="flow">
+    <div class="step side"><b>Inbox</b><small>Ideas</small><span>Raw, in your words.</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step main"><b>Spec</b><small>What</small><span>Requirements with IDs. You approve.</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step main"><b>Design</b><small>How</small><span>Architecture, data, decisions.</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step main"><b>Plan</b><small>What is left</small><span>Milestones: model, effort, status.</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step side"><b>Git</b><small>Done</small><span>The history is the record.</span></div>
+  </div>
+
+  <div class="split">
+    <div class="card"><h3>One fact, one file</h3><p>No copies to drift apart. Finished work leaves the plan.</p></div>
+    <div class="card"><h3>Works by hand too</h3><p>Any AI chat, or a person with a text editor. The method is the documents, not the tool.</p></div>
+  </div>
+</section>
+
+<!-- 3. Around the documents -->
+<section id="around">
+  <div class="kicker">Around the documents</div>
+  <h2>The workflow, step by step</h2>
+
+  <ol class="steps">
+    <li>
+      <h3>Inbox</h3>
+      <p>You drop ideas, in your words.</p>
+      <div class="tags"><span>inbox.md</span></div>
+    </li>
+    <li>
+      <h3>Spec and design</h3>
+      <p>The AI asks only what it cannot decide. You approve the spec.</p>
+      <div class="tags"><span>spec.md</span><span>design.md</span></div>
+    </li>
+    <li>
+      <h3>Plan</h3>
+      <p>Milestones, one row each: model, effort, status.</p>
+      <div class="tags"><span>plan.md</span></div>
+    </li>
+    <li class="wide">
+      <h3>Execute</h3>
+      <p>One milestone at a time, each in a fresh AI session:</p>
+      <div class="substeps">
+        <span>Tests first</span><span>See them fail</span><span>Build</span><span>Check</span><span>Update docs</span><span>Remove from plan</span><span>Commit &amp; push</span>
+      </div>
+      <div class="tags"><span>milestone runner</span><span>hooks</span></div>
+    </li>
+    <li>
+      <h3>Blocked</h3>
+      <p>Needs your decision? The question goes in the plan. Nothing else changes.</p>
+      <div class="tags"><span>plan.md</span></div>
+    </li>
+    <li>
+      <h3>Approval</h3>
+      <p>Your answer goes in the plan. Commit, run again.</p>
+      <div class="tags"><span>plan.md</span></div>
+    </li>
+  </ol>
+
+  <div class="always">
+    <b>Always on</b>
+    <span><i>CLAUDE.md + rules</i> about 190 lines; topic rules load per file</span>
+    <span><i>Hooks</i> each edit: lint &amp; fix; each commit: all checks &amp; tests</span>
+    <span><i>Permissions</i> allow routine, ask risky, deny destructive</span>
+  </div>
+
+  <p class="note"><b>The skill</b> sets all of this up in one command: files, git, GitHub, environment, tools.</p>
+</section>
+
+<!-- 4. What you get, and why -->
+<section id="tools">
+  <div class="kicker">What you get, and why</div>
+  <h2>Enforce with tools, not prompts</h2>
+
+  <div class="split">
+    <table>
+      <tr><th>Tool</th><th>Enforces</th></tr>
+      <tr><td>ruff &middot; ESLint</td><td>Style, smells, small functions (&asymp;20 lines, 4 parameters)</td></tr>
+      <tr><td>Prettier &middot; Stylelint</td><td>Formatting, CSS rules</td></tr>
+      <tr><td>mypy &middot; tsc</td><td>Strict types</td></tr>
+      <tr><td>pytest</td><td>Behavior, 80% branch coverage</td></tr>
+      <tr><td>Git hook</td><td>All of the above, on every commit</td></tr>
+      <tr><td>Permissions</td><td>No force push, no hard reset</td></tr>
+    </table>
+
+    <div class="versus">
+      <div class="card">
+        <h3>A prompt is advice</h3>
+        <ul>
+          <li>Followed most of the time.</li>
+          <li>Costs context in every session.</li>
+          <li>The longer it gets, the less it is followed.</li>
+        </ul>
+      </div>
+      <div class="card accent">
+        <h3>A linter is a rule</h3>
+        <ul>
+          <li>Enforced every time.</li>
+          <li>Costs nothing until it fails.</li>
+          <li>Runs in under a second.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">If a tool can check it, it goes in the tool's config. <b>CLAUDE.md</b> keeps only what no tool can check, in under 200 lines.</p>
+</section>
+
+</main>
+
+<script>
+  // The slide crossing the middle of the screen is current: the panel, the bar, the count and
+  // the buttons follow it. Back and Next (and the left and right arrow keys) move one slide.
+  const slides = [...document.querySelectorAll("section")];
+  const links = [...document.querySelectorAll("nav a")];
+  const bar = document.querySelector(".progress span");
+  const last = slides.length - 1;
+  let current = 0;
+
+  function show(index) {
+    current = index;
+    links.forEach((link, i) => link.toggleAttribute("aria-current", i === index));
+    bar.style.width = `${(index / last) * 100}%`;
+    document.getElementById("count").textContent = `${index} / ${last}`;
+    document.getElementById("back").disabled = index === 0;
+    document.getElementById("next").disabled = index === last;
+  }
+
+  function go(step) {
+    const target = Math.min(Math.max(current + step, 0), last);
+    slides[target].scrollIntoView({ behavior: "smooth" });
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) show(slides.indexOf(entry.target));
+    }
+  }, { rootMargin: "-50% 0px -50% 0px" });
+  slides.forEach((slide) => observer.observe(slide));
+
+  document.getElementById("back").addEventListener("click", () => go(-1));
+  document.getElementById("next").addEventListener("click", () => go(1));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowRight") go(1);
+    if (event.key === "ArrowLeft") go(-1);
+  });
+</script>
+
+</body>
+</html>
