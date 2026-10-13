@@ -17,14 +17,14 @@ This repository is the skill's source. Everything the skill needs is inside `ski
   - [With other modules](#with-other-modules)
 - [Stack](#stack)
 - [File structure](#file-structure)
-- [To use the skill to start a new project](#to-use-the-skill-to-start-a-new-project)
-  - [1. Install the skill](#1-install-the-skill)
-  - [2. Set up GitHub](#2-set-up-github)
-  - [3. Set up conda](#3-set-up-conda)
-- [To work on this repository](#to-work-on-this-repository)
-- [How to run](#how-to-run)
-  - [Start a new project with the skill](#start-a-new-project-with-the-skill)
-  - [The scripts alone](#the-scripts-alone)
+- [How to use](#how-to-use)
+  - [Set up the machine (once)](#set-up-the-machine-once)
+  - [Start a new project](#start-a-new-project)
+- [How to contribute](#how-to-contribute)
+  - [Set up the environment](#set-up-the-environment)
+  - [Run the scripts alone](#run-the-scripts-alone)
+  - [Change what new projects get](#change-what-new-projects-get)
+  - [The line budget](#the-line-budget)
 - [How to test](#how-to-test)
   - [The test suite](#the-test-suite)
   - [Lint and type checks](#lint-and-type-checks)
@@ -147,17 +147,19 @@ is kept so you can see the full wording of rules that were shortened or dropped,
 Nothing reads it: `build_instance.py` reads only `CLAUDE_GOLDEN.md`, and new projects never get it.
 Do not edit it.
 
-## To use the skill to start a new project
+## How to use
 
-Do these once per machine.
+First set up the machine, once. Then start each new project.
 
-### 1. Install the skill
+### Set up the machine (once)
+
+#### 1. Install the skill
 
 1. Copy `skills/project-init` to `%USERPROFILE%\.claude\skills\project-init`.
 2. Delete the old `%USERPROFILE%\.claude\skills\project-docs-init`. This skill replaces it.
 3. After every change to the skill, copy it again.
 
-### 2. Set up GitHub
+#### 2. Set up GitHub
 
 1. Install the GitHub CLI:
 
@@ -184,7 +186,7 @@ If winget fails with `0x8a15000f` (data required by the source is missing):
 
 2. Install again (step 1).
 
-### 3. Set up conda
+#### 3. Set up conda
 
 1. Install Miniconda.
 2. Set it up for cmd, once, so that `conda activate` works in the VS Code terminal:
@@ -196,10 +198,107 @@ If winget fails with `0x8a15000f` (data required by the source is missing):
 You do not create a conda environment for a new project. The skill creates it, named after that
 project.
 
-## To work on this repository
+### Start a new project
+
+Do "Set up the machine" above once. Then, for each new project:
+
+#### 1. Create the project folder
+
+1. Create an empty folder for the project, for example `C:\alkashef\GitHub\my-app`.
+2. Open it in VS Code (File > Open Folder). The folder may hold only `.git`, `.claude` and
+   `.vscode`. A repository with commits is refused, because the skill is for new projects.
+3. Open Claude Code in that folder (the VS Code extension, or `claude` in the VS Code terminal).
+
+#### 2. Run the skill
+
+1. Type `/project-init`, or just say "start a new project".
+2. Answer its questions. It proposes a default for each:
+   - *Project name*: the GitHub repository name and the conda environment name. Default: the
+     folder name.
+   - *Purpose*: one line. It goes into `CLAUDE.md`, the spec, the README and the repository
+     description.
+   - *Modules*: what the project has. It proposes some from your purpose. Default: `python`.
+   - *Visibility*: private unless you say public.
+
+   | Module | Add when the project has |
+   | --- | --- |
+   | `python`, `javascript` | Python code, JavaScript or TypeScript |
+   | `html-css`, `ui-design` | a browser front end, a user interface |
+   | `http-apis`, `cli`, `mcp` | an HTTP API, a command-line interface, an MCP server or host |
+   | `data`, `llm` | data files or a store, LLM calls or local models |
+   | `logging`, `long-running`, `validation` | logging, async jobs, user-input validation |
+   | `static-site`, `docker` | a Markdown-to-HTML site, Docker |
+
+3. Wait for it to finish. It checks everything first and changes nothing if a check fails. Then it
+   runs `git init`, builds the files, creates the conda environment and installs the Python tools
+   (about a minute), makes the first commit (the whole scaffold), turns on the pre-commit hook,
+   creates the GitHub repository, and pushes `main`. It ends by printing the repository URL and the
+   environment.
+
+#### 3. Start a new Claude Code session
+
+1. Open a new conversation in the same folder. `CLAUDE.md`, the rules, the permissions, the edit
+   hook and the `/write-spec` and `/write-design` skills were created after the first session
+   began, so only a new one loads them.
+2. If Claude Code asks whether you trust the folder, say yes. Until you do, it ignores the
+   project's `allow` rules (the `ask` and `deny` rules still apply).
+
+#### 4. Finish the setup
+
+The skill's report lists these.
+
+1. JavaScript, HTML or CSS: open a new VS Code terminal and run `npm install`. Until then, the
+   pre-commit hook refuses every commit that has web files to check, and says so. (The Python
+   tools are already installed.)
+2. Check that the tools are found. In a new VS Code terminal (cmd, with the project's environment
+   active), run:
+
+   ```bat
+   python scripts/check.py
+   ```
+
+   It should print `All checks passed.` If it names a tool, that tool is not installed yet.
+
+3. Install the recommended VS Code extensions. VS Code may not offer them, because
+   `.vscode/extensions.json` appeared after the folder was opened: in the Extensions view, search
+   `@recommended` and choose *Install Workspace Recommended Extensions*.
+4. Check the **Project** section of `CLAUDE.md` and the layout table in `docs/design.md`.
+
+#### 5. Write the spec and the design
+
+1. In the new session, type `/write-spec`. Claude interviews you about the project and writes
+   `docs/spec.md`.
+2. Approve the spec, then type `/write-design`. Claude writes `docs/design.md`.
+3. From there the loop is in `docs/workflow.md`: spec, design, plan, one milestone at a time.
+
+#### 6. Run the planned milestones (optional)
+
+1. In the project terminal, run:
+
+   ```bat
+   python scripts/milestones-runner.py
+   ```
+
+2. It stops at the first milestone that fails or needs a decision, and prints why.
+
+#### If it stops with an error
+
+Nothing was deleted. The usual causes:
+
+- `gh` is missing or not logged in: run `winget install GitHub.cli`, then `gh auth login`.
+- The folder holds other files.
+- The repository name is taken: rerun with `--name`, or tell the skill another name.
+- git has no `user.name` or `user.email`.
+- conda is not installed: install Miniconda, or rerun with `--no-conda`.
+- conda or pip fails partway (no network, for example): the project is still committed and pushed,
+  and the error says the commands to run by hand.
+
+## How to contribute
 
 You need this only to change the skill or run its tests. `project-init` here is this repository's
 own environment, not a new project's.
+
+### Set up the environment
 
 1. Create the environment, once:
 
@@ -220,74 +319,7 @@ own environment, not a new project's.
    conda activate project-init
    ```
 
-## How to run
-
-### Start a new project with the skill
-
-Do "To use the skill to start a new project" above once. Then, for each new project:
-
-1. **Create an empty folder** for the project, for example `C:\alkashef\GitHub\my-app`, and open it
-   in VS Code (File > Open Folder). The folder may hold only `.git`, `.claude` and `.vscode`. A
-   repository with commits is refused, because the skill is for new projects.
-2. **Open Claude Code in that folder** (the VS Code extension, or `claude` in the VS Code terminal).
-3. **Run the skill.** Type `/project-init`, or just say "start a new project".
-4. **Answer its questions.** It proposes a default for each:
-   - *Project name*: the GitHub repository name and the conda environment name. Default: the
-     folder name.
-   - *Purpose*: one line. It goes into `CLAUDE.md`, the spec, the README and the repository
-     description.
-   - *Modules*: what the project has. It proposes some from your purpose. Default: `python`.
-   - *Visibility*: private unless you say public.
-
-   | Module | Add when the project has |
-   | --- | --- |
-   | `python`, `javascript` | Python code, JavaScript or TypeScript |
-   | `html-css`, `ui-design` | a browser front end, a user interface |
-   | `http-apis`, `cli`, `mcp` | an HTTP API, a command-line interface, an MCP server or host |
-   | `data`, `llm` | data files or a store, LLM calls or local models |
-   | `logging`, `long-running`, `validation` | logging, async jobs, user-input validation |
-   | `static-site`, `docker` | a Markdown-to-HTML site, Docker |
-
-5. **Wait for it to finish.** It checks everything first and changes nothing if a check fails.
-   Then it runs `git init`, builds the files, creates the conda environment and installs the
-   Python tools (about a minute), makes the first commit (the whole scaffold), turns on the
-   pre-commit hook, creates the GitHub repository, and pushes `main`. It ends by printing the
-   repository URL and the environment.
-6. **Start a new Claude Code session in the same folder** (a new conversation). `CLAUDE.md`, the
-   rules, the permissions and the edit hook were created after the first session began, so only
-   a new one loads them. If Claude Code asks whether you trust the folder, say yes: until you do,
-   it ignores the project's `allow` rules (the `ask` and `deny` rules still apply).
-7. **Finish the setup** (the skill's report lists these):
-   - JavaScript, HTML or CSS: open a new VS Code terminal and run `npm install`. Until then, the
-     pre-commit hook refuses every commit that has web files to check, and says so. (The Python
-     tools are already installed.)
-   - Check that the tools are found. In a new VS Code terminal (cmd, with the project's
-     environment active), run:
-
-     ```bat
-     python scripts/check.py
-     ```
-
-     It should print `All checks passed.` If it names a tool, that tool is not installed yet.
-   - Install the recommended VS Code extensions. VS Code may not offer them, because
-     `.vscode/extensions.json` appeared after the folder was opened: in the Extensions view, search
-     `@recommended` and choose *Install Workspace Recommended Extensions*.
-   - Check the **Project** section of `CLAUDE.md` and the layout table in `docs/design.md`.
-   - In the new session, type `/write-spec`: Claude interviews you about the project and writes
-     `docs/spec.md`. When you approve the spec, type `/write-design` for `docs/design.md`. From there
-     the loop is in `docs/workflow.md`: spec, design, plan, one milestone at a time.
-   - To run the planned milestones without you: in the project terminal, run
-     `python scripts/milestones-runner.py`. It stops at the first milestone that fails or needs a
-     decision, and prints why.
-
-If it stops with an error, nothing was deleted. The usual causes: `gh` is missing or not logged in
-(`winget install GitHub.cli`, then `gh auth login`); the folder holds other files; the repository
-name is taken (rerun with `--name`, or tell the skill another name); git has no `user.name` or
-`user.email`; conda is not installed (install Miniconda, or rerun with `--no-conda`). If conda
-or pip fails partway (no network, for example), the project is still committed and pushed, and
-the error says the commands to run by hand.
-
-### The scripts alone
+### Run the scripts alone
 
 From `skills/project-init/`:
 
@@ -300,12 +332,15 @@ python scripts/build_instance.py <folder> --with python --dry-run           # li
 `html-css`, `ui-design`, `http-apis`, `data`, `cli`, `static-site`, `mcp`, `docker`. Existing files
 are never overwritten unless `build_instance.py` gets `--force`.
 
-**Changing what new projects get.** Edit `assets/`. For the rules, edit `assets/CLAUDE_GOLDEN.md`,
-keep its section tags, and keep the always-loaded set (`always_loaded()` in `build_instance.py`)
-under 200 lines once built.
+### Change what new projects get
 
-**The line budget.** The built `CLAUDE.md` must have fewer than 200 lines, counting every line,
-blank lines included. It is about 190 now. The test suite checks this on a build with every module.
+Edit `assets/`. For the rules, edit `assets/CLAUDE_GOLDEN.md`, keep its section tags, and keep the
+always-loaded set (`always_loaded()` in `build_instance.py`) under 200 lines once built.
+
+### The line budget
+
+The built `CLAUDE.md` must have fewer than 200 lines, counting every line, blank lines included. It
+is about 190 now. The test suite checks this on a build with every module.
 
 - *Why every line:* Anthropic's advice to keep `CLAUDE.md` under 200 lines counts the file as it
   is. Skipping blank lines would let the file pass the test at well over 200 real lines.
