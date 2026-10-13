@@ -1,6 +1,8 @@
 """The skill's assets agree with what build_instance.py expects to find in them."""
 
 import json
+import re
+from pathlib import Path
 
 import build_instance as bi
 
@@ -72,3 +74,42 @@ def test_check_configs_and_hooks_ask_before_an_edit() -> None:
 def test_every_section_id_is_unique() -> None:
     sections = bi.read_sections(bi.assets_dir() / "CLAUDE_GOLDEN.md")
     assert len(sections) == len(golden_ids())
+
+
+def project_skills() -> list[Path]:
+    """Return the folder of each skill that new projects receive."""
+    return sorted(p for p in (bi.assets_dir() / ".claude" / "skills").iterdir() if p.is_dir())
+
+
+def test_project_skills_are_the_two_slash_commands() -> None:
+    assert [p.name for p in project_skills()] == ["write-design", "write-spec"]
+
+
+def test_every_project_skill_names_itself_after_its_folder() -> None:
+    for folder in project_skills():
+        text = (folder / "SKILL.md").read_text(encoding="utf-8")
+        assert text.startswith(f"---\nname: {folder.name}\ndescription:"), folder.name
+
+
+def test_every_project_skill_link_resolves() -> None:
+    for folder in project_skills():
+        text = (folder / "SKILL.md").read_text(encoding="utf-8")
+        links = re.findall(r"\]\(([^)#:]+)\)", text)
+        assert links, folder.name
+        assert [link for link in links if not (folder / link).is_file()] == []
+
+
+def test_the_workflow_and_the_skills_hand_off_to_each_other() -> None:
+    docs = bi.assets_dir() / "docs"
+    skills = bi.assets_dir() / ".claude" / "skills"
+    workflow = (docs / "workflow.md").read_text(encoding="utf-8")
+    assert "/write-spec" in workflow
+    assert "/write-design" in workflow
+    assert "/write-design" in (skills / "write-spec" / "SKILL.md").read_text(encoding="utf-8")
+    assert "/write-spec" in (skills / "write-design" / "SKILL.md").read_text(encoding="utf-8")
+
+
+def test_no_asset_mentions_the_inbox() -> None:
+    # The inbox was replaced by /write-spec.
+    sources = [bi.assets_dir() / "CLAUDE_GOLDEN.md", *(bi.assets_dir() / "docs").glob("*.md")]
+    assert [p.name for p in sources if "inbox" in p.read_text(encoding="utf-8")] == []

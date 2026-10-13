@@ -34,7 +34,7 @@ The objective is clean, maintainable code for humans and machines. Humans can re
 Machines (AI agents, type checkers, linters, tests) can navigate and verify it. All code is written
 by AI. Follow every rule in this file exactly.
 
-- `docs/workflow.md`, `inbox.md`, `spec.md`, `design.md`, and `plan.md` always exist.
+- `docs/workflow.md`, `spec.md`, `design.md`, and `plan.md` always exist.
   `workflow.md` says what each is for.
 - Requirements live only in `docs/spec.md`. Never implement one that exists only in chat, code, or
   memory. If a request is not covered by the spec or contradicts it, stop and ask.
@@ -120,7 +120,7 @@ the hook files asks the user first; ask only to change a rule on purpose, never 
 | --- | --- |
 | `src/` | All source code. `docs/design.md` has the detailed layout. |
 | `tests/` | `unit/`, `e2e/`, and `e2e/ui/`. |
-| `docs/` | `workflow.md`, `inbox.md`, `spec.md`, `design.md`, `plan.md`, and reference material. |
+| `docs/` | `workflow.md`, `spec.md`, `design.md`, `plan.md`, and reference material. |
 | `config/` | `.env` (never committed) and `.env.example` (committed). |
 | `data/` | Input and runtime data. |
 | `content/`, `site/` | Static site: Markdown source (authors edit only this) and generated output (committed, never edited by hand). |

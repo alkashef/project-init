@@ -141,3 +141,19 @@ def test_to_section_takes_the_id_from_the_comment() -> None:
 def test_select_sections_drops_optional_sections_not_chosen() -> None:
     sections = [bi.Section(i, i, []) for i in ["A1", "B1", "B2"]]
     assert [s.section_id for s in bi.select_sections(sections, ["python"])] == ["A1", "B1"]
+
+
+def test_build_writes_the_project_skills(tmp_path: Path) -> None:
+    build(tmp_path)
+    for skill in ("write-spec", "write-design"):
+        assert (tmp_path / ".claude" / "skills" / skill / "SKILL.md").is_file()
+    assert not (tmp_path / ".claude" / "skills" / "write-spec" / "assets" / "icon.svg").exists()
+
+
+def test_build_writes_a_draft_spec_and_no_inbox(tmp_path: Path) -> None:
+    build(tmp_path / "my-app", "--purpose", "Counts sheep")
+    docs = tmp_path / "my-app" / "docs"
+    spec = (docs / "spec.md").read_text(encoding="utf-8")
+    assert "# Spec — my-app\n\nStatus: Draft" in spec
+    assert "Counts sheep" in spec
+    assert not (docs / "inbox.md").exists()

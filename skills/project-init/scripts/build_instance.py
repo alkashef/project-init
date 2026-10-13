@@ -79,11 +79,18 @@ def optional_flags() -> dict[str, str]:
     }
 
 
+def skill_files() -> list[str]:
+    """Return the files of the project skills (`/write-spec`, `/write-design`) under assets/."""
+    skills = assets_dir() / ".claude" / "skills"
+    return sorted(p.relative_to(assets_dir()).as_posix() for p in skills.rglob("*") if p.is_file())
+
+
 def template_files() -> dict[str, list[str]]:
     """Map a flag ('always' or a --with flag) to the asset files it copies as they are."""
     return {
         "always": [
             ".claude/settings.json",
+            *skill_files(),
             ".gitattributes",
             ".githooks/pre-commit",
             ".gitignore",
@@ -110,7 +117,6 @@ def rendered_templates() -> list[str]:
     """Return the asset files that get their {{placeholders}} filled (README, docs, VS Code)."""
     return [
         "README.md",
-        "docs/inbox.md",
         "docs/spec.md",
         "docs/design.md",
         "docs/plan.md",
@@ -148,7 +154,7 @@ def always_folders() -> dict[str, str]:
     return {
         "src/": "All source code.",
         "tests/": "`unit/` and `e2e/` tests.",
-        "docs/": "Workflow, inbox, spec, design, and plan.",
+        "docs/": "Workflow, spec, design, and plan.",
         "config/": "`.env` (never committed) and `.env.example`.",
         "scripts/": "`check.py` (the checks), `milestones-runner.py`, `cleanup.py`, setup scripts.",
         ".claude/": "Claude Code settings, including the hook that checks each edit.",
