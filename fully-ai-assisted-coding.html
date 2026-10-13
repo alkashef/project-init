@@ -491,20 +491,20 @@
   <div class="flow">
     <div class="step main gate">
       <b>Spec</b><small>What</small><em>A human approves</em>
-      <p>Requirements with IDs. The AI can help write it, interview style.</p>
+      <p>Requirements with IDs. The AI can help write it, interview style: <code>/write-spec</code>.</p>
       <p>But a human <strong>must</strong> review and approve it. This is the single most important step and the single most important quality gate. It is done by a human, not by the AI.</p>
     </div>
     <div class="arrow">&rarr;</div>
     <div class="step main">
       <b>Design</b><small>How</small><em>A human designs</em>
-      <p>Architecture, data, decisions.</p>
+      <p>Architecture, data, decisions. <code>/write-design</code> helps.</p>
       <p>Done by a human; the AI assists. It needs senior software engineering experience.</p>
     </div>
     <div class="arrow">&rarr;</div>
     <div class="step main">
       <b>Plan</b><small>Implementation</small><em>The AI builds</em>
       <p>Fully built by the AI.</p>
-      <p>Milestones with their tests, model, effort and status.</p>
+      <p>Milestones with their tests, model, effort and status: <code>/write-plan</code>.</p>
     </div>
   </div>
 
@@ -584,14 +584,14 @@
     <div class="arrow">&rarr;</div>
     <div class="step main">
       <b>A project ready to work</b><small>Result</small>
-      <p>Pushed to GitHub. Drop your first idea in the inbox.</p>
+      <p>Pushed to GitHub. Type <code>/write-spec</code> to start the first interview.</p>
     </div>
   </div>
 
   <ul class="bullets">
     <li><b>What the skill sets up</b>
       <ul>
-        <li>CLAUDE.md with path-scoped rules; the docs: workflow, inbox, spec, design, plan; the README.</li>
+        <li>CLAUDE.md with path-scoped rules; the docs: workflow, spec, design, plan; the <code>/write-spec</code>, <code>/write-design</code> and <code>/write-plan</code> skills; the README.</li>
         <li>Tool configs, hooks, the milestone runner and the starting folders.</li>
         <li>The first commit, the GitHub repository, the push, and a conda environment named after the project.</li>
       </ul>
@@ -620,7 +620,7 @@
     </tr>
     <tr>
       <td><code>docs/</code></td>
-      <td>The workflow and its documents: inbox, spec, design, plan. The plan lists milestones with tests, model, effort and status.</td>
+      <td>The workflow and its documents: spec, design, plan, written with <code>/write-spec</code>, <code>/write-design</code> and <code>/write-plan</code>. The plan lists milestones with tests, model, effort and status.</td>
       <td>Claude works from these files, not from memory of past sessions. One fact, one file.</td>
     </tr>
     <tr>

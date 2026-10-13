@@ -81,8 +81,8 @@ def project_skills() -> list[Path]:
     return sorted(p for p in (bi.assets_dir() / ".claude" / "skills").iterdir() if p.is_dir())
 
 
-def test_project_skills_are_the_two_slash_commands() -> None:
-    assert [p.name for p in project_skills()] == ["write-design", "write-spec"]
+def test_project_skills_are_the_three_slash_commands() -> None:
+    assert [p.name for p in project_skills()] == ["write-design", "write-plan", "write-spec"]
 
 
 def test_every_project_skill_names_itself_after_its_folder() -> None:
@@ -113,3 +113,13 @@ def test_no_asset_mentions_the_inbox() -> None:
     # The inbox was replaced by /write-spec.
     sources = [bi.assets_dir() / "CLAUDE_GOLDEN.md", *(bi.assets_dir() / "docs").glob("*.md")]
     assert [p.name for p in sources if "inbox" in p.read_text(encoding="utf-8")] == []
+
+
+def test_the_plan_skill_follows_the_design_skill() -> None:
+    skills = bi.assets_dir() / ".claude" / "skills"
+    workflow = (bi.assets_dir() / "docs" / "workflow.md").read_text(encoding="utf-8")
+    assert "/write-plan" in workflow
+    assert "/write-plan" in (skills / "write-design" / "SKILL.md").read_text(encoding="utf-8")
+    plan_skill = (skills / "write-plan" / "SKILL.md").read_text(encoding="utf-8")
+    assert "/write-spec" in plan_skill
+    assert "/write-design" in plan_skill

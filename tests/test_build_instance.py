@@ -145,7 +145,7 @@ def test_select_sections_drops_optional_sections_not_chosen() -> None:
 
 def test_build_writes_the_project_skills(tmp_path: Path) -> None:
     build(tmp_path)
-    for skill in ("write-spec", "write-design"):
+    for skill in ("write-spec", "write-design", "write-plan"):
         assert (tmp_path / ".claude" / "skills" / skill / "SKILL.md").is_file()
     assert not (tmp_path / ".claude" / "skills" / "write-spec" / "assets" / "icon.svg").exists()
 

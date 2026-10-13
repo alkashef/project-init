@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: Set up the current folder as a new project from the golden templates and push it to GitHub. Run it in a new, empty project folder that is open in VS Code. Builds CLAUDE.md, the path-scoped rules, docs/ (workflow, spec, design, plan), the /write-spec and /write-design skills, README, tool configs and starting folders, then commits, creates the GitHub repository, pushes, and creates a conda environment with the project's name. Use whenever the user wants to start, init, bootstrap or scaffold a new project or repo, or says "new project", even if they do not mention GitHub or the docs. Not for adding files to an existing project.
+description: Set up the current folder as a new project from the golden templates and push it to GitHub. Run it in a new, empty project folder that is open in VS Code. Builds CLAUDE.md, the path-scoped rules, docs/ (workflow, spec, design, plan), the /write-spec, /write-design and /write-plan skills, README, tool configs and starting folders, then commits, creates the GitHub repository, pushes, and creates a conda environment with the project's name. Use whenever the user wants to start, init, bootstrap or scaffold a new project or repo, or says "new project", even if they do not mention GitHub or the docs. Not for adding files to an existing project.
 ---
 
 # Project init
@@ -92,9 +92,10 @@ To change what new projects get, edit `assets/`, not this file.
      refuses commits that have web files to check, and says so.
    - In the new session, type `/write-spec`. It interviews the user about the project, starting
      from the purpose given here, and writes `docs/spec.md`. When the user approves the spec, type
-     `/write-design` to write `docs/design.md`. Then follow `docs/workflow.md`. Once milestones are
-     planned, `python scripts/milestones-runner.py` runs them unattended, one `claude -p` session
-     each, and stops at the first that fails or needs a decision.
+     `/write-design` to write `docs/design.md`, and when the user approves the design, `/write-plan`
+     to write the milestones in `docs/plan.md`. Then follow `docs/workflow.md`.
+     `python scripts/milestones-runner.py` runs the planned milestones unattended, one `claude -p`
+     session each, and stops at the first that fails or needs a decision.
    - Review the **Project** section of the new `CLAUDE.md` and the layout table in `docs/design.md`.
 
 Do not edit the generated files or make more commits in this skill. Setting up the project is done

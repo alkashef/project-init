@@ -8,7 +8,7 @@ The same in every project. Project-specific rules are in `CLAUDE.md`.
 | --- | --- | --- |
 | `docs/spec.md` | What to build: requirements with IDs | AI, with `/write-spec` and user approval |
 | `docs/design.md` | How to build it: architecture, data, rules, decisions | AI, with `/write-design` |
-| `docs/plan.md` | What is left: only unfinished milestones, with their questions and approvals | AI; the user adds approvals |
+| `docs/plan.md` | What is left: only unfinished milestones, with their questions and approvals | AI, with `/write-plan`; the user adds approvals |
 
 Each fact lives in one file. Finished work is recorded by git history, not by the docs.
 
@@ -16,7 +16,7 @@ Each fact lives in one file. Finished work is recorded by git history, not by th
 
 1. **Spec.** For a new project or a change, the user runs `/write-spec`. The AI interviews the user, one question at a time, and writes the requirements into `spec.md` as a draft (`Status: Draft`). For a spec that is already approved, it proposes each change first. The user approves the spec; then `Status` is `Approved`.
 2. **Design.** Once the spec is approved, the user runs `/write-design`. The AI updates `design.md` and asks only what it cannot decide. If the design needs a different requirement, it proposes the spec change; the user approves it. The user approves the design.
-3. **Plan.** The AI turns the spec and design changes into milestones in `plan.md`: for each, a row in the table "Milestones at a glance" and a block under "Milestones" (templates below). Number them from the counter at the top of `plan.md`, then advance the counter.
+3. **Plan.** Once the design is approved, the user runs `/write-plan`. The AI turns the spec and design into milestones in `plan.md`: for each, a row in the table "Milestones at a glance" (at the top, so the status of every milestone is visible at a glance) and a block under "Milestones" (templates below). It shows the table first; the user approves it. It numbers the milestones from the counter at the top of `plan.md`, then advances the counter.
 4. **Execute.** Work one milestone at a time, in order:
    1. Write the tests. Name each after the spec ID it verifies.
    2. Run them; the new tests must fail.
@@ -48,7 +48,8 @@ remote.
 
 ## Milestone templates
 
-A row of the table "Milestones at a glance". Model: `haiku`, `sonnet` or `opus`. Effort: `low`,
+A row of the table "Milestones at a glance". Model: `haiku`, `sonnet` or `opus` (the latest model of
+that family), or a full model ID such as `claude-sonnet-5-5` to stay on one version. Effort: `low`,
 `medium`, `high`, `xhigh` or `max`. Status: `open`, then `blocked` and `approved` if it needs the
 user (steps 5 and 6).
 

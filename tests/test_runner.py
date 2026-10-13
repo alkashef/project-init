@@ -226,3 +226,41 @@ def test_runner_refuses_a_dirty_tree(planned: Sandbox) -> None:
     assert code == 1
     assert "git status is not clean" in output
     assert logged_calls(planned.folder.parent / "claude.log") == []
+
+
+def test_a_pinned_model_id_is_accepted(built: Path) -> None:
+    runner = load_runner(built)
+    for model in ("sonnet", "claude-sonnet-5-5", "claude-opus-4-1-20250805"):
+        assert runner.row_problem(runner.Row(1, "A", model, "low", "open")) is None, model
+    for model in ("claude-gpt-4", "claude-sonnet", "sonnet-5-5", "claude-sonnet-5 5"):
+        assert "Model" in runner.row_problem(runner.Row(1, "A", model, "low", "open")), model
+
+
+def test_the_status_line_drops_the_claude_prefix(built: Path) -> None:
+    runner = load_runner(built)
+    progress = runner.Progress(1, 4, 2, "claude-sonnet-5-5", "high", 5.0, 65.0, (30.0,))
+    assert "M2 sonnet-5-5/high" in runner.status_text(progress)
+
+
+def plan_guide(project: Path) -> str:
+    """Return the text of the milestone guide that /write-plan reads."""
+    guide = project / ".claude" / "skills" / "write-plan" / "references" / "milestone-guide.md"
+    return guide.read_text(encoding="utf-8")
+
+
+def test_the_write_plan_example_is_a_row_and_block_the_runner_reads(built: Path) -> None:
+    runner = load_runner(built)
+    lines = plan_guide(built).splitlines()
+    [row_line] = [line for line in lines if line.startswith("| **M3**")]
+    assert runner.parse_row(row_line) == runner.Row(
+        3, "Record a payment", "sonnet", "medium", "open"
+    )
+    assert runner.row_problem(runner.parse_row(row_line)) is None
+    assert runner.milestone_block(lines, 3)[0] == "### M3 — Record a payment"
+
+
+def test_the_write_plan_guide_names_every_model_and_effort(built: Path) -> None:
+    runner = load_runner(built)
+    guide = plan_guide(built)
+    values = [*runner.VALID_MODELS, *runner.VALID_EFFORTS]
+    assert [value for value in values if f"`{value}`" not in guide] == []

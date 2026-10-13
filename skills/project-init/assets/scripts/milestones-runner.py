@@ -35,7 +35,8 @@ from typing import Final, NoReturn, Self
 
 # The rules of a run (docs/workflow.md).
 ENV_NAME: Final = "{{PROJECT_NAME}}"
-VALID_MODELS: Final = ("haiku", "sonnet", "opus")
+VALID_MODELS: Final = ("haiku", "sonnet", "opus")  # aliases: the latest model of the family
+MODEL_ID: Final = re.compile(r"claude-(haiku|sonnet|opus)-\d[a-z0-9-]*")  # a pinned version
 VALID_EFFORTS: Final = ("low", "medium", "high", "xhigh", "max")
 IGNORE_ENTRIES: Final = (".claude/logs/",)
 TAIL_LINES: Final = 30
@@ -403,8 +404,11 @@ def row_problem(row: Row) -> str | None:
     """Return why the model or effort of the row cannot be used, or None."""
     if not row.model or not row.effort:
         return f"M{row.id} has no Model or no Effort in the table."
-    if row.model not in VALID_MODELS:
-        return f"M{row.id}: Model '{row.model}' is not one of {', '.join(VALID_MODELS)}."
+    if row.model not in VALID_MODELS and not MODEL_ID.fullmatch(row.model):
+        return (
+            f"M{row.id}: Model '{row.model}' is not one of {', '.join(VALID_MODELS)} "
+            "or a full model ID such as claude-sonnet-5-5."
+        )
     if row.effort not in VALID_EFFORTS:
         return f"M{row.id}: Effort '{row.effort}' is not one of {', '.join(VALID_EFFORTS)}."
     return None
@@ -615,7 +619,7 @@ def status_text(progress: Progress) -> str:
     return " | ".join(
         (
             f"{bar} {percent(progress.done, progress.total)}% {progress.done}/{progress.total}",
-            f"M{progress.row_id} {progress.model}/{progress.effort}",
+            f"M{progress.row_id} {progress.model.removeprefix('claude-')}/{progress.effort}",
             f"this {format_duration(progress.milestone_seconds)}",
             f"total {format_duration(progress.total_seconds)}",
             eta_text(progress.finished_seconds, progress.total - progress.done),

@@ -101,3 +101,4 @@ Present the concrete design before requesting any approval required by project r
 Record only approval actually given, in the location the workflow permits. Technical review and user approval are separate facts.
 Save authorized design edits and follow applicable document checks and Git rules. Report the result and any remaining blocker briefly.
 Stop after design. Do not install dependencies, create application code, run experiments, or build milestones unless separately authorized.
+After approval, tell the user the next step is `/write-plan`.

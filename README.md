@@ -66,13 +66,13 @@ tool's config, where it is enforced on every run, and `CLAUDE.md` keeps only wha
 | `.githooks/pre-commit` | Runs `scripts/run-check.sh`. A failing check or test refuses the commit. `init_project.py` turns it on with `git config core.hooksPath .githooks` after the first commit; after a fresh clone, the new README says to run that once. | Lint errors, type errors and failing tests cannot reach the history, from Claude or from you. The workflow already tells Claude to run the tests before a commit; the hook makes sure, for every commit. If a tool is missing (before `npm install`, for example), it refuses the commit and names the tool. |
 | `.gitattributes` | LF line endings for every text file, on every machine. | The hook scripts fail under `sh` with CRLF endings, which git on Windows (`core.autocrlf=true`) would otherwise give them. |
 | `docs/workflow.md`, `spec.md`, `design.md`, `plan.md` | The working loop (copied) and its three documents (filled in with the name and purpose). `spec.md` is the full requirements template: scenarios, EARS requirements, acceptance examples, open questions and the approval record. `plan.md` lists the milestones in a table, "Milestones at a glance", with the model, effort and status of each, and holds one block per milestone. When a milestone needs your decision (a spec change, a new dependency, a forbidden action), Claude sets its Status to `blocked`, adds a **Blocked** entry with the question to its block, and commits the plan alone. You add an **Approval** entry, set the Status to `approved`, and commit; the next session reads your approval and goes on. | `/write-spec` writes the spec, `/write-design` the design, then a plan, one milestone at a time. Claude works from these files instead of from memory of past sessions. |
-| `.claude/skills/write-spec/`, `.claude/skills/write-design/` | Two project skills, copied as they are. `/write-spec` interviews you one question at a time and writes `docs/spec.md` (EARS requirements with stable IDs, scenarios, acceptance examples); it ends by telling you to run `/write-design`, which turns the approved spec into `docs/design.md` (decisions with `DEC-NNN` IDs, architecture, data model, interfaces). Start them in a new Claude Code session: skill files created after a session starts load only in a new one. They are interactive, so `milestones-runner.py` does not use them. | The spec and design are written by a method, not improvised: Claude asks instead of guessing, and nothing is built from a requirement that was never approved. |
+| `.claude/skills/write-spec/`, `.claude/skills/write-design/`, `.claude/skills/write-plan/` | Three project skills, copied as they are. `/write-spec` interviews you one question at a time and writes `docs/spec.md` (EARS requirements with stable IDs, scenarios, acceptance examples). `/write-design` turns the approved spec into `docs/design.md` (decisions with `DEC-NNN` IDs, architecture, data model, interfaces). `/write-plan` turns the approved spec and design into `docs/plan.md`: a table of milestones with model, effort and status at the top, and a block per milestone with its tests and how to build it. Each skill ends by telling you the next one to run. Start them in a new Claude Code session: skill files created after a session starts load only in a new one. They are interactive, so `milestones-runner.py` does not use them. | The spec, design and plan are written by a method, not improvised: Claude asks instead of guessing, and nothing is built from a requirement or a design that was never approved. |
 | `README.md` | Filled in with the name, purpose, stack, folder table, setup, run and test commands. | Every project starts with a README that says how to set it up and run it. |
 | `.gitignore` | Ignores secrets (`config/.env`), data, models, logs, caches, `node_modules`, local settings. | Secrets and large or generated files never reach GitHub. |
 | `config/.env.example` | The list of settings, with secrets left empty. | Copied to `config/.env`, which is never committed, so settings live in one place and secrets stay out of the code. |
 | `.vscode/settings.json` | Format on save, UTF-8, LF line endings, ruff for Python, Prettier and ESLint fixes for JavaScript, mypy with `mypy.ini`, pytest in `tests/`. The default terminal is cmd, and each new terminal runs `conda activate <project name>`. | The editor applies the same checks as the command line while you type, and every terminal starts in the project's environment, so nothing is installed into `base` by mistake. |
 | `.vscode/extensions.json` | Recommends extensions for the modules you chose: Python, Ruff and Mypy with `python`; ESLint and Prettier with `javascript`; Prettier and Stylelint with `html-css` or `ui-design`. Error Lens and SonarLint for every project. Built by `build_instance.py`, not copied. | VS Code offers to install them when the project opens; nothing installs them without your click. A project gets only the extensions its files use. |
-| `scripts/milestones-runner.py` | Runs the open milestones of `plan.md` in order, each in its own unattended `claude -p` session with the model and effort of its row. Checks first: the project's conda environment is active, git is clean, the branch pushes to a remote. After each milestone: its row left the plan, git is clean, everything is pushed. Stops at a `blocked` row and at a milestone that blocks, and prints its question; after you approve and commit, run it again and it goes on from there. Also stops at a milestone that did not finish. Live status line; logs and timings in `.claude/logs/`. `--start N`, `--end N`. | A planned list of milestones runs without you, one fresh session each, so no session carries another's context. The hooks still check every commit, and the runner stops instead of guessing. |
+| `scripts/milestones-runner.py` | Runs the open milestones of `plan.md` in order, each in its own unattended `claude -p` session with the model and effort of its row (`haiku`, `sonnet` or `opus`, meaning the latest of that family, or a full model ID such as `claude-sonnet-5-5` to pin a version). Checks first: the project's conda environment is active, git is clean, the branch pushes to a remote. After each milestone: its row left the plan, git is clean, everything is pushed. Stops at a `blocked` row and at a milestone that blocks, and prints its question; after you approve and commit, run it again and it goes on from there. Also stops at a milestone that did not finish. Live status line; logs and timings in `.claude/logs/`. `--start N`, `--end N`. | A planned list of milestones runs without you, one fresh session each, so no session carries another's context. The hooks still check every commit, and the runner stops instead of guessing. |
 | `scripts/cleanup.py` | Deletes caches and generated files (`__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, coverage, logs). Never source, data or environments. `--dry-run` lists only. | One safe command Claude may run without asking. |
 | `src/`, `tests/unit/`, `tests/e2e/` | Empty starting folders (each holds a `.gitkeep`). | Every project has the same layout, which the rules and configs assume. |
 
@@ -118,7 +118,7 @@ skills/project-init/            the skill. Install by copying this folder.
     CLAUDE_GOLDEN.md            the master, in tagged sections. Never copied.
     CLAUDE_GOLDEN.md.646        the master before the cut to the line budget. Reference only.
     docs/                       workflow.md (copied); spec, design, plan (filled in)
-    .claude/skills/             write-spec, write-design: the project skills (copied)
+    .claude/skills/             write-spec, write-design, write-plan: the project skills (copied)
     scripts/cleanup.py          cache cleaner (copied)
     scripts/check.py            the checks both hooks run (copied)
     scripts/milestones-runner.py  runs the plan unattended (filled in)
@@ -238,7 +238,7 @@ Do "Set up the machine" above once. Then, for each new project:
 #### 3. Start a new Claude Code session
 
 1. Open a new conversation in the same folder. `CLAUDE.md`, the rules, the permissions, the edit
-   hook and the `/write-spec` and `/write-design` skills were created after the first session
+   hook and the `/write-spec`, `/write-design` and `/write-plan` skills were created after the first session
    began, so only a new one loads them.
 2. If Claude Code asks whether you trust the folder, say yes. Until you do, it ignores the
    project's `allow` rules (the `ask` and `deny` rules still apply).
@@ -264,12 +264,14 @@ The skill's report lists these.
    `@recommended` and choose *Install Workspace Recommended Extensions*.
 4. Check the **Project** section of `CLAUDE.md` and the layout table in `docs/design.md`.
 
-#### 5. Write the spec and the design
+#### 5. Write the spec, the design and the plan
 
 1. In the new session, type `/write-spec`. Claude interviews you about the project and writes
    `docs/spec.md`.
 2. Approve the spec, then type `/write-design`. Claude writes `docs/design.md`.
-3. From there the loop is in `docs/workflow.md`: spec, design, plan, one milestone at a time.
+3. Approve the design, then type `/write-plan`. Claude shows the milestones table (model, effort,
+   status); after you approve it, Claude writes `docs/plan.md`.
+4. From there the loop is in `docs/workflow.md`: spec, design, plan, one milestone at a time.
 
 #### 6. Run the planned milestones (optional)
 
