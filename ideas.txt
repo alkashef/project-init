@@ -221,13 +221,38 @@ Expected impact: High.
 Ranking reason: Gives generation and review useful quality targets beyond style metrics. The unresolved import and class restrictions have no assumed benefit.
 Ranking basis: Sections 5.4 (#stage-04), 5.10 (#stage-10), and Appendix 3 (#quality).
 
-   Sources: original user ideas 8, 9, and 10, plus former REPORT-14.
+   Sources: original user ideas 8, 9, and 10, the user's later simplicity
+   instruction, plus former REPORT-14.
    The user's quality question and the report-derived quality criteria complement each other.
    The universal import and class rules conflict with the report-derived proposal
    to allow justified, language-specific or project-specific exceptions.
 
 USER PROPOSAL - original idea 8: Rethink software quality
    Reconsider what software quality means and how the workflow should assess it.
+
+USER PROPOSAL - October 17, 2026: Avoid complex patterns
+   Add an instruction to CLAUDE.md about not using complex patterns.
+   Source: User. This is an extension of USER-08, not a separate ranked entry.
+
+Proposed operational wording for CLAUDE.md:
+   Use the simplest design that meets the approved specification and design.
+   Do not introduce complex patterns, extra abstraction layers, or speculative
+   flexibility without a concrete requirement and a stated reason.
+   Prefer clear control flow and direct component interactions.
+   When complexity is necessary, explain which requirement needs it and why
+   a simpler alternative is inadequate. Record that decision in the design.
+
+Interpretation:
+   "Complex" has no fixed meaning across languages or systems.
+   The wording above turns the user's intent into a requirement-based check.
+   A pattern's name alone does not establish that it is unnecessary.
+   This refinement does not authorize changes to the existing approved design.
+
+Supporting report references:
+   Section 5.4 (#stage-04): justify major components through requirements.
+   Section 5.10 (#stage-10): review unjustified complexity.
+   Appendix 3 (#quality): assess simplicity and the need for abstractions.
+   These references support the rationale. The user originated this proposal.
 
 CONFLICT A - Import placement
 User proposal - original idea 9:
@@ -578,8 +603,9 @@ CONSOLIDATION AND SOURCE MAP
 - REPORT-12 -> rank 11. REPORT-13 -> rank 12. REPORT-15 -> rank 16.
 
 - New user proposal: system overview and design check -> USER-09, rank 9.
+- New user instruction: avoid complex patterns in CLAUDE.md -> USER-08, rank 7.
 
-All 10 original user ideas, the new user proposal, and all 15 report-derived
+All 10 original user ideas, both later user additions, and all 15 report-derived
 proposals remain represented in these 21 consolidated entries. Old IDs identify sources, not additional ideas.
 The two convention conflicts remain unresolved. No proposal is implemented.
 
