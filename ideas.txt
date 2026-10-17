@@ -43,3 +43,262 @@ These notes record proposed changes. Approval to record them does not authorize 
     - A class must not span multiple files.
     - A class file must not contain standalone functions or executable code outside the class.
     - Imports remain at the top of the file, as specified in idea 9.
+
+
+===============================================================================
+IDEAS DERIVED FROM THE REPORT: FULLY AI-ASSISTED, SPEC-DRIVEN DEVELOPMENT
+===============================================================================
+
+Added: October 17, 2026
+Source: Fully_AI_Assisted_SDD_October_2026.html, dated October 16, 2026.
+Each Report reference below gives the section number, title, and HTML anchor.
+These are proposed workflow improvements derived from the report and repository
+comparison. They are not implemented changes or approval to implement them.
+
+Repository reviewed: alkashef/project-init
+Baseline commit: 373622e557e2597e0551d9a400dbb1ff6b5cf493
+Method: document and source inspection. No application checks or tests were run.
+
+Repository path key:
+- W: skills/project-init/assets/docs/workflow.md
+- G: skills/project-init/assets/CLAUDE_GOLDEN.md
+- P: skills/project-init/assets/.claude/skills/write-plan/SKILL.md
+- M: skills/project-init/assets/.claude/skills/write-plan/references/milestone-guide.md
+- C: skills/project-init/assets/scripts/check.py
+- R: skills/project-init/assets/scripts/milestones-runner.py
+- S: skills/project-init/assets/.claude/skills/write-spec/
+- D: skills/project-init/assets/.claude/skills/write-design/
+
+Keep the existing strengths: approved specifications, stable requirement and
+decision IDs, acceptance examples, thin milestones, scope controls, and checks.
+The proposals below extend or reconcile those controls.
+
+REPORT-01 [High] Add an explicit baseline before planning a change
+Current: W starts with specification. S, D, and P inspect existing files, but the
+workflow has no explicit baseline record with executed checks and known failures.
+Proposal: Before planning, record the source revision, relevant system map,
+runtime and dependency versions, existing test results, and known defects.
+For a new project, establish its build and test environment. For an existing
+project, record behavior and compatibility obligations that must survive.
+Record pre-existing failures separately from regressions introduced by the change.
+Report: Section 5.2, "Inspect the system and establish a baseline" (#stage-02).
+Also Section 5.1, "Define the outcome and boundaries" (#stage-01).
+Why: Later claims need a factual starting point and a clear delivery boundary.
+
+REPORT-02 [High] Keep a usable chain from requirements to completed evidence
+Current: P checks requirement coverage and references. W deletes completed
+milestones and leaves the completed record in Git history.
+Proposal: Add a consistency check before execution across the specification,
+design, plan, and acceptance examples. Identify missing IDs, contradictions,
+unresolved decisions, and requirements with no planned evidence.
+When a milestone finishes, retain links from requirement IDs to decisions,
+tests, the implementation revision, and actual results in a compact evidence
+record. The active plan can still contain only unfinished work.
+Report: Section 4.5, "Traceability through one production change" (#traceability).
+Also Sections 4.2 (#artifacts), 5.5 (#stage-05), and 5.13 (#stage-13).
+Why: IDs and historical commits alone do not give a current requirement-to-result
+view. This extends the existing coverage check rather than replacing it.
+
+REPORT-03 [High] Give the test-generation skill an independent basis for results
+Current: S already captures domain-reviewed examples. W says to write tests,
+and M requests one test name per requirement ID. Neither defines a full test
+design step that records the source of each expected result.
+Proposal: Extend the earlier test-generation skill idea. Use approved examples,
+domain rules, reference calculations, and invariants to derive tests.
+Allow several tests per requirement. Include relevant boundaries, invalid input,
+failures, repeated operations, interruptions, and concurrency. Propose missing
+business decisions as questions rather than inventing the expected behavior.
+Record each expected result's source. Do not copy the implementation's calculation
+into the expected-result calculation. Use property or mutation checks where useful.
+Report: Section 5.6, "Establish tests and expected results" (#stage-06).
+Also Section 4.4, "Two distinct questions about correctness" (#two-questions).
+Why: Generated code and generated tests can agree on the same wrong assumption.
+Related earlier idea: 3.
+
+REPORT-04 [High] Separate isolated tests from real integration evidence
+Current: G's Testing section requires fakes at external boundaries and prohibits
+tests that need real networks, clocks, or external servers. Its HTTP API section
+uses the framework test client without starting a server.
+Proposal: Keep fast, isolated unit tests. Add integration, contract, and end-to-end
+checks where they establish behavior that fakes cannot establish.
+Use controlled test services, temporary storage, approved fixtures, and isolated
+environments. Never use production data or services without authorization.
+For interfaces that matter, exercise the actual integration or deployment path.
+Mark unavailable integration checks as not run, with the remaining evidence gap.
+Report: Section 5.8, "Verify the integrated result" (#stage-08).
+Also Section 5.6 (#stage-06) and Appendix 2 (#production), Integration.
+Why: A fake or in-process test client cannot establish every external interaction.
+
+REPORT-05 [Medium] Require a meaningful failing test, not just any failure
+Current: W's Execute loop says that new tests must fail. M applies a failing-test
+condition to every milestone and rejects setup work that no test can show.
+Proposal: For behavior changes and defect repairs, record why the new regression
+or acceptance check fails before the repair and passes afterward.
+An import error, broken fixture, or missing tool does not establish that a test
+detects the intended behavioral defect.
+Give setup, documentation, and refactoring work suitable evidence instead of
+forcing an artificial failing behavioral test. Preserve tests-first work where
+it adds useful evidence.
+Report: Section 5.6, "Establish tests and expected results" (#stage-06).
+Also Section 5.5 (#stage-05) and Section 5.10 (#stage-10).
+Why: The reason for a failure matters more than the presence of a red result.
+
+REPORT-06 [High] Make check results explicit and prevent empty success claims
+Current: C discovers checks from files and patterns. check_all() reports
+"All checks passed." if the discovered checks produce no failures.
+G's task report asks for a passed-test count but no full execution inventory.
+Proposal: Define required checks for the approved increment. Report each check as
+passed, failed, skipped, not run, or not applicable, with a reason and evidence.
+Record commands, environment, fixtures, observed outputs, and the tested revision.
+Distinguish "no applicable checks" from verified success. Block completion when
+a required check is missing or did not run.
+Keep quick edit checks separate from the complete verification gate.
+Report: Section 5.8, "Verify the integrated result" (#stage-08).
+Also Appendix 1 (#checklist), Verification and Stop conditions.
+Why: No discovered failure is weaker evidence than completion of required checks.
+
+REPORT-07 [High] Strengthen the milestone runner's completion decision
+Current: R's failure_reason() checks that the row disappeared or became blocked,
+the Git tree is clean, and commits were pushed. Hooks provide checks, but the
+runner does not inspect a required verification record.
+Proposal: Require an evidence record linked to the completed implementation
+revision, including mandatory check outcomes and required review disposition.
+Check that the code and configuration being accepted match the tested revision.
+Keep distinct states for execution complete, verification complete, and accepted
+for release. A pushed commit must not imply production acceptance.
+Report: Section 5.8 (#stage-08) and Section 5.11 (#stage-11).
+Also Appendix 1 (#checklist), Stop conditions.
+Why: Plan removal and clean Git state establish process state, not correctness.
+
+REPORT-08 [High] Add a review gate with findings before repairs
+Current: W moves from implementation and checks to documentation and commit.
+The generated project skills cover specification, design, and planning, but no
+dedicated review skill is supplied.
+Proposal: Extend the earlier code review skill idea. Review the actual diff
+against approved requirements, design, contracts, and verification evidence.
+List each finding with its requirement or decision reference, file location,
+consequence, severity, and proposed remedy. Seek counterexamples, failure paths,
+weak tests, and unjustified complexity.
+Report findings before edits. Track resolution or explicit acceptance of each
+material finding. Treat behavior-preserving refactoring separately from a change
+to approved behavior. A second AI review supplements human judgment and tests.
+Report: Section 5.10, "Review and refactor for maintainability" (#stage-10).
+Also Appendix 3 (#quality).
+Why: A clean lint result and the implementer's success report do not replace review.
+Related earlier idea: 2.
+
+REPORT-09 [High] Separate specification verification from user validation
+Current: S includes user scenarios and quality targets. W has no explicit stage
+where a domain owner evaluates the release against representative real tasks.
+Proposal: Add a validation and release decision after technical verification.
+Use representative workflows, input sizes, outputs, and failure conditions.
+Assess usefulness and correctness with the appropriate domain owner.
+Measure applicable performance, reliability, recovery, and usability targets.
+Record accepted criteria, failed criteria, untested criteria, and justified
+exclusions. Unresolved mandatory criteria block release.
+Report: Section 4.4, "Two distinct questions about correctness" (#two-questions).
+Also Section 5.11, "Validate intended use and production readiness" (#stage-11),
+and Appendix 2 (#production).
+Why: Software can meet its specification while solving the wrong problem.
+
+REPORT-10 [High] Add a checked handover and repeatable release
+Current: W updates inaccurate documents and G requires README setup instructions.
+G pins direct dependencies, but a clean-environment setup and release handover
+are not explicit workflow gates.
+Proposal: Test the documented setup from a clean environment. Retain sufficient
+dependency and environment information to repeat it, including resolved versions
+where direct pins alone do not control installation.
+Identify the release artifact and source revision. Include operation, diagnostics,
+known limits, ownership, safe reruns, and recovery instructions.
+Check that the instructions work for someone other than the implementer.
+Report: Section 5.12, "Document, release, and hand over" (#stage-12).
+Also Appendix 2 (#production), Delivery and Operation.
+Why: Committing code and documenting commands do not establish installability or
+operational readiness.
+
+REPORT-11 [High] Diagnose failures and preserve safe partial work
+Current: W sends failed checks back to implementation. Its blocked path requires
+leaving every other file unchanged and committing only the plan.
+That instruction does not explain how to handle a blocker found after useful edits.
+Proposal: Add a defect procedure: reproduce, state expected and actual behavior,
+classify the responsible artifact, form a causal hypothesis, run a discriminating
+check, repair, and show regression results.
+Retain failed attempts and conclusions so another session does not repeat them.
+Define how to preserve safe partial work separately from the plan-only blocked
+record. Do not discard user edits or force an unsafe reset to satisfy that rule.
+Report: Section 5.9, "Diagnose defects and recover deliberately" (#stage-09).
+Also Section 5.7 (#stage-07) and Appendix 1 (#checklist), Session handover prompt.
+Why: Repeated edits without a supported cause can hide the original defect.
+The partial-work handling is an adaptation of the report to W's blocked procedure.
+
+REPORT-12 [High] Replace blanket failure policies with approved recovery contracts
+Current: G's Error handling and LLM sections forbid recovery, fallback, and retry.
+Its Data and storage section requires a backup before rewriting stored data.
+Proposal: Let the approved specification and design define failure behavior.
+For relevant transient failures, consider bounded retries, timeouts, cancellation,
+duplicate protection, and explicit recovery states.
+State which operations are safe to retry and what happens after partial success.
+Distinguish restoration of code from recovery of data and external side effects.
+Test the chosen recovery procedure. A backup alone does not establish recoverability.
+Keep unexpected failures visible and never weaken acceptance criteria to hide them.
+Report: Section 5.4 (#stage-04), failure handling.
+Also Sections 5.9 (#stage-09), 5.12 (#stage-12), and 5.14 (#system-types).
+Why: A universal no-recovery rule can conflict with the required system behavior.
+This proposes design-driven recovery, not unrestricted or automatic retries.
+
+REPORT-13 [Medium] Make later changes follow an explicit impact assessment
+Current: W supports changes, S proposes specification amendments, and G updates
+living documents. The cross-artifact and compatibility review remains distributed.
+Proposal: Add a compact change procedure from the current accepted baseline.
+Map effects across requirements, decisions, interfaces, consumers, stored data,
+tests, and operating instructions before implementation.
+Show proposed intent changes for approval. Preserve stable IDs and link replacement
+decisions. For incompatible changes, plan the consumer or data transition.
+After the change, reconcile the artifacts and evidence into one accepted baseline.
+Report: Section 5.13, "Maintain the specification through later changes"
+(#stage-13).
+Why: This strengthens existing amendment rules and prevents gradual artifact drift.
+
+REPORT-14 [High] Define quality through outcomes and keep the core rules concise
+Current: G combines engineering principles with fixed style and architecture
+choices. It includes function, parameter, complexity, and coverage limits.
+Several stack choices and implementation patterns are prescribed in advance.
+Proposal: Keep universal intent, evidence, privacy, scope, and approval rules in
+the core workflow. Keep language conventions in the applicable language profile,
+and project architecture choices in the approved design.
+Assess correctness, clarity, cohesion, simplicity, testability, reliability,
+efficiency, compatibility, diagnostics, and change cost against the intended use.
+Use size and coverage metrics as warning signals rather than proof of quality.
+Review the earlier one-class-per-file and imports-only-at-the-top proposals as
+conventions with stated reasons and applicable exceptions. The report does not
+prescribe either rule as a universal quality requirement.
+Report: Section 5.2 (#stage-02), short persistent instructions.
+Also Section 5.4 (#stage-04), Section 5.10 (#stage-10), and Appendix 3 (#quality).
+Why: More restrictions do not automatically improve software quality.
+This may qualify earlier ideas 9 and 10, while supporting ideas 6, 7, and 8.
+Those original ideas remain unchanged above for our discussion.
+
+REPORT-15 [Medium] Scale evidence and workflow depth to the kind of system
+Current: The generator selects optional stack modules, but W applies the same
+execution loop and milestone template to every project.
+Proposal: Keep one shared workflow with applicable evidence profiles.
+A script needs file-effect, exit-status, rerun, and interruption checks.
+A data workflow needs reconciliation, schema, backfill, and recovery evidence.
+A service needs contract, timeout, concurrency, and compatibility evidence.
+A user interface needs interaction, visual, and accessibility evidence.
+Use only the records and checks needed for the actual scope. Several records can
+share a document if their ownership and links remain clear.
+Do not turn the report's 13 stages into 13 mandatory documents or repeated approvals
+for decisions the user already made.
+Report: Section 5.14, "Adapt the same workflow to different systems"
+(#system-types). Also Section 4.2 (#artifacts) and Appendix 2 (#production).
+Why: Proportionate evidence makes the workflow reusable without adding needless work.
+
+Suggested discussion order:
+1. Evidence and acceptance: REPORT-03, 04, 06, 07, 08, and 09.
+2. Failure and delivery: REPORT-01, 10, 11, and 12.
+3. Continuity and flexibility: REPORT-02, 05, 13, 14, and 15.
+
+All REPORT ideas cite the source report above. Path-specific findings come from
+the stated repository baseline. The proposed file names and gate details are
+adaptations for this project, not claims that the report mandates one tool layout.
