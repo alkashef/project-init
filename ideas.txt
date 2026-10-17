@@ -310,7 +310,8 @@ Source: User, new proposal on October 17, 2026.
 User request:
 - Add a skill that generates a high-level description of the system.
 - Include its design, data model and schema where applicable, and interfaces.
-- Include UML or other useful diagrams where they clarify the system.
+- Explicitly diagram the system components and their interfaces in UML or an
+  equivalent notation. This component-and-interface diagram is required.
 - Guide AI to check the design before touching the code.
 
 Current overlap:
@@ -326,8 +327,13 @@ Proposed refinement for discussion:
 2. Include the applicable data model: entities, fields and types, identifiers,
    relationships, constraints, ownership, and persistence boundaries.
 3. Describe public and component interfaces: inputs, outputs, errors, and contracts.
-4. Add diagrams only when useful, such as component, sequence, class, or data diagrams.
-   Do not require every diagram type for every project.
+4. Include an explicit component-and-interface diagram in UML or an equivalent
+   notation. Show named components, responsibilities, connections, and interface
+   boundaries. Identify the contracts or exchanged data on important connections.
+   Link the diagram to the corresponding interface descriptions in the design.
+   Add sequence, class, or data diagrams where they clarify other views.
+   The notation is flexible. The component-and-interface view is required.
+   The user explicitly requested this diagram in the follow-up on October 17, 2026.
 5. Keep the approved design authoritative. Place the overview in that document,
    or link a derived view to its authoritative sections instead of duplicating facts.
 6. For existing systems, inspect code and schemas as evidence of implemented behavior.
