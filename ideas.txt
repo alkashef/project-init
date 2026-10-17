@@ -1,54 +1,12 @@
 SDD Workflow - Proposed Ideas
 Approved for recording: October 17, 2026
+Consolidated: October 17, 2026
 
 These notes record proposed changes. Approval to record them does not authorize implementation.
+The user authorized merging duplicates and grouping conflicting proposals.
+Conflicts remain unresolved. Grouping proposals does not select either position.
 
-1. Rename the project
-   Rename project-init to "SDD Workflow".
-   SDD stands for Spec Driven Development.
-
-2. Add a code review skill
-   Add a dedicated skill for code review.
-
-3. Add a test generation skill
-   Derive tests, including edge cases, from the specification and design.
-   Implement this capability as a skill.
-
-4. Put linters and checkers in one folder
-   Collect the linting and checking scripts and their configurations in a single dedicated folder.
-
-5. Research and improve the source folder structure
-   Research common source folder structures before choosing the layout.
-   Include frontend, backend, and named feature or component subfolders where appropriate.
-
-6. Make the workflow and CLAUDE.md less rigid
-   Reduce overly specific instructions.
-   Give AI room to choose how to meet the requirements.
-   Review constraints that could cause bugs or other issues.
-
-7. Make the workflow independent of programming language
-   Support different programming languages without tying the core workflow to one language.
-
-8. Rethink software quality
-   Reconsider what software quality means and how the workflow should assess it.
-
-9. Keep imports at the top of each file
-   Add a rule to CLAUDE.md that imports must appear at the top of the file.
-   Do not place imports inside functions, methods, or other code blocks.
-
-10. Use one class per file
-    Add these rules to CLAUDE.md:
-    - Each class must have its own file.
-    - A file must not define more than one class.
-    - A class must not span multiple files.
-    - A class file must not contain standalone functions or executable code outside the class.
-    - Imports remain at the top of the file, as specified in idea 9.
-
-
-===============================================================================
-IDEAS DERIVED FROM THE REPORT: FULLY AI-ASSISTED, SPEC-DRIVEN DEVELOPMENT
-===============================================================================
-
+SOURCE AND REVIEW CONTEXT
 Added: October 17, 2026
 Source: Fully_AI_Assisted_SDD_October_2026.html, dated October 16, 2026.
 Each Report reference below gives the section number, title, and HTML anchor.
@@ -72,6 +30,144 @@ Repository path key:
 Keep the existing strengths: approved specifications, stable requirement and
 decision IDs, acceptance examples, thin milestones, scope controls, and checks.
 The proposals below extend or reconcile those controls.
+
+
+===============================================================================
+USER IDEAS AND MERGED ENTRIES
+===============================================================================
+
+Source labels distinguish the user's proposals from report-derived extensions.
+Report-derived proposals adapt the report to the reviewed repository.
+They do not imply that the report mandates a particular skill or file layout.
+
+1. Rename the project
+   Rename project-init to "SDD Workflow".
+   SDD stands for Spec Driven Development.
+   Source: User, original idea 1.
+
+2. Add a code review skill
+   Add a dedicated skill for code review.
+   Source: User, original idea 2.
+
+Report-derived extension [High]; former REPORT-08:
+Current: W moves from implementation and checks to documentation and commit.
+The generated project skills cover specification, design, and planning, but no
+dedicated review skill is supplied.
+Proposal: Review the actual diff
+against approved requirements, design, contracts, and verification evidence.
+List each finding with its requirement or decision reference, file location,
+consequence, severity, and proposed remedy. Seek counterexamples, failure paths,
+weak tests, and unjustified complexity.
+Report findings before edits. Track resolution or explicit acceptance of each
+material finding. Treat behavior-preserving refactoring separately from a change
+to approved behavior. A second AI review supplements human judgment and tests.
+Report: Section 5.10, "Review and refactor for maintainability" (#stage-10).
+Also Appendix 3 (#quality).
+Why: A clean lint result and the implementer's success report do not replace review.
+
+3. Add a test generation skill
+   Derive tests, including edge cases, from the specification and design.
+   Implement this capability as a skill.
+   Source: User, original idea 3.
+
+Report-derived extension [High]; former REPORT-03:
+Current: S already captures domain-reviewed examples. W says to write tests,
+and M requests one test name per requirement ID. Neither defines a full test
+design step that records the source of each expected result.
+Proposal: Use approved examples,
+domain rules, reference calculations, and invariants to derive tests.
+Allow several tests per requirement. Include relevant boundaries, invalid input,
+failures, repeated operations, interruptions, and concurrency. Propose missing
+business decisions as questions rather than inventing the expected behavior.
+Record each expected result's source. Do not copy the implementation's calculation
+into the expected-result calculation. Use property or mutation checks where useful.
+Report: Section 5.6, "Establish tests and expected results" (#stage-06).
+Also Section 4.4, "Two distinct questions about correctness" (#two-questions).
+Why: Generated code and generated tests can agree on the same wrong assumption.
+
+4. Put linters and checkers in one folder
+   Collect the linting and checking scripts and their configurations in a single dedicated folder.
+   Source: User, original idea 4.
+
+5. Research and improve the source folder structure
+   Research common source folder structures before choosing the layout.
+   Include frontend, backend, and named feature or component subfolders where appropriate.
+   Source: User, original idea 5.
+
+6. Make the workflow and CLAUDE.md less rigid
+   Reduce overly specific instructions.
+   Give AI room to choose how to meet the requirements.
+   Review constraints that could cause bugs or other issues.
+   Source: User, original idea 6.
+
+7. Make the workflow independent of programming language
+   Support different programming languages without tying the core workflow to one language.
+   Source: User, original idea 7.
+
+8. Software quality and coding conventions [UNRESOLVED CONFLICTS]
+   Sources: original user ideas 8, 9, and 10, plus former REPORT-14.
+   The user's quality question and the report-derived quality criteria complement each other.
+   The universal import and class rules conflict with the report-derived proposal
+   to allow justified, language-specific or project-specific exceptions.
+
+USER PROPOSAL - original idea 8: Rethink software quality
+   Reconsider what software quality means and how the workflow should assess it.
+
+CONFLICT A - Import placement
+User proposal - original idea 9:
+   Add a rule to CLAUDE.md that imports must appear at the top of the file.
+   Do not place imports inside functions, methods, or other code blocks.
+Report-derived alternative - former REPORT-14:
+   Treat import placement as a convention with stated reasons and applicable
+   exceptions. Keep language conventions in the applicable language profile.
+Conflict:
+   The user proposes a universal ban on imports inside code blocks.
+   The report-derived proposal allows justified exceptions to that ban.
+Status: Unresolved. Neither position overrides the other.
+
+CONFLICT B - Class and file structure
+User proposal - original idea 10:
+   Add these rules to CLAUDE.md:
+   - Each class must have its own file.
+   - A file must not define more than one class.
+   - A class must not span multiple files.
+   - A class file must not contain standalone functions or executable code outside the class.
+   - Imports remain at the top of the file, as specified in Conflict A.
+Report-derived alternative - former REPORT-14:
+   Treat one-class-per-file as a convention with stated reasons and applicable
+   exceptions. Put project architecture choices in the approved design.
+Conflict:
+   The user proposes universal class and file restrictions.
+   The report-derived proposal questions their universal scope and allows justified exceptions.
+   The report does not separately prescribe rules for every class-file detail.
+Status: Unresolved. Neither position overrides the other.
+
+Report-derived alternative and quality criteria [High]; former REPORT-14:
+Current: G combines engineering principles with fixed style and architecture
+choices. It includes function, parameter, complexity, and coverage limits.
+Several stack choices and implementation patterns are prescribed in advance.
+Proposal: Keep universal intent, evidence, privacy, scope, and approval rules in
+the core workflow. Keep language conventions in the applicable language profile,
+and project architecture choices in the approved design.
+Assess correctness, clarity, cohesion, simplicity, testability, reliability,
+efficiency, compatibility, diagnostics, and change cost against the intended use.
+Use size and coverage metrics as warning signals rather than proof of quality.
+Review the earlier one-class-per-file and imports-only-at-the-top proposals as
+conventions with stated reasons and applicable exceptions. The report does not
+prescribe either rule as a universal quality requirement.
+Report: Section 5.2 (#stage-02), short persistent instructions.
+Also Section 5.4 (#stage-04), Section 5.10 (#stage-10), and Appendix 3 (#quality).
+Why: More restrictions do not automatically improve software quality.
+This supports user ideas 6 and 7 and the quality question in this entry.
+It questions the universal scope of the user's import and class rules below.
+
+===============================================================================
+REMAINING IDEAS DERIVED FROM THE REPORT: FULLY AI-ASSISTED, SPEC-DRIVEN DEVELOPMENT
+===============================================================================
+
+These entries come from the report and repository comparison described above.
+REPORT IDs remain stable. Former REPORT-03, REPORT-08, and REPORT-14 now live
+in merged entries 3, 2, and 8 respectively.
 
 REPORT-01 [High] Add an explicit baseline before planning a change
 Current: W starts with specification. S, D, and P inspect existing files, but the
@@ -98,22 +194,6 @@ Report: Section 4.5, "Traceability through one production change" (#traceability
 Also Sections 4.2 (#artifacts), 5.5 (#stage-05), and 5.13 (#stage-13).
 Why: IDs and historical commits alone do not give a current requirement-to-result
 view. This extends the existing coverage check rather than replacing it.
-
-REPORT-03 [High] Give the test-generation skill an independent basis for results
-Current: S already captures domain-reviewed examples. W says to write tests,
-and M requests one test name per requirement ID. Neither defines a full test
-design step that records the source of each expected result.
-Proposal: Extend the earlier test-generation skill idea. Use approved examples,
-domain rules, reference calculations, and invariants to derive tests.
-Allow several tests per requirement. Include relevant boundaries, invalid input,
-failures, repeated operations, interruptions, and concurrency. Propose missing
-business decisions as questions rather than inventing the expected behavior.
-Record each expected result's source. Do not copy the implementation's calculation
-into the expected-result calculation. Use property or mutation checks where useful.
-Report: Section 5.6, "Establish tests and expected results" (#stage-06).
-Also Section 4.4, "Two distinct questions about correctness" (#two-questions).
-Why: Generated code and generated tests can agree on the same wrong assumption.
-Related earlier idea: 3.
 
 REPORT-04 [High] Separate isolated tests from real integration evidence
 Current: G's Testing section requires fakes at external boundaries and prohibits
@@ -169,23 +249,6 @@ for release. A pushed commit must not imply production acceptance.
 Report: Section 5.8 (#stage-08) and Section 5.11 (#stage-11).
 Also Appendix 1 (#checklist), Stop conditions.
 Why: Plan removal and clean Git state establish process state, not correctness.
-
-REPORT-08 [High] Add a review gate with findings before repairs
-Current: W moves from implementation and checks to documentation and commit.
-The generated project skills cover specification, design, and planning, but no
-dedicated review skill is supplied.
-Proposal: Extend the earlier code review skill idea. Review the actual diff
-against approved requirements, design, contracts, and verification evidence.
-List each finding with its requirement or decision reference, file location,
-consequence, severity, and proposed remedy. Seek counterexamples, failure paths,
-weak tests, and unjustified complexity.
-Report findings before edits. Track resolution or explicit acceptance of each
-material finding. Treat behavior-preserving refactoring separately from a change
-to approved behavior. A second AI review supplements human judgment and tests.
-Report: Section 5.10, "Review and refactor for maintainability" (#stage-10).
-Also Appendix 3 (#quality).
-Why: A clean lint result and the implementer's success report do not replace review.
-Related earlier idea: 2.
 
 REPORT-09 [High] Separate specification verification from user validation
 Current: S includes user scenarios and quality targets. W has no explicit stage
@@ -259,25 +322,6 @@ Report: Section 5.13, "Maintain the specification through later changes"
 (#stage-13).
 Why: This strengthens existing amendment rules and prevents gradual artifact drift.
 
-REPORT-14 [High] Define quality through outcomes and keep the core rules concise
-Current: G combines engineering principles with fixed style and architecture
-choices. It includes function, parameter, complexity, and coverage limits.
-Several stack choices and implementation patterns are prescribed in advance.
-Proposal: Keep universal intent, evidence, privacy, scope, and approval rules in
-the core workflow. Keep language conventions in the applicable language profile,
-and project architecture choices in the approved design.
-Assess correctness, clarity, cohesion, simplicity, testability, reliability,
-efficiency, compatibility, diagnostics, and change cost against the intended use.
-Use size and coverage metrics as warning signals rather than proof of quality.
-Review the earlier one-class-per-file and imports-only-at-the-top proposals as
-conventions with stated reasons and applicable exceptions. The report does not
-prescribe either rule as a universal quality requirement.
-Report: Section 5.2 (#stage-02), short persistent instructions.
-Also Section 5.4 (#stage-04), Section 5.10 (#stage-10), and Appendix 3 (#quality).
-Why: More restrictions do not automatically improve software quality.
-This may qualify earlier ideas 9 and 10, while supporting ideas 6, 7, and 8.
-Those original ideas remain unchanged above for our discussion.
-
 REPORT-15 [Medium] Scale evidence and workflow depth to the kind of system
 Current: The generator selects optional stack modules, but W applies the same
 execution loop and milestone template to every project.
@@ -294,11 +338,32 @@ Report: Section 5.14, "Adapt the same workflow to different systems"
 (#system-types). Also Section 4.2 (#artifacts) and Appendix 2 (#production).
 Why: Proportionate evidence makes the workflow reusable without adding needless work.
 
-Suggested discussion order:
-1. Evidence and acceptance: REPORT-03, 04, 06, 07, 08, and 09.
-2. Failure and delivery: REPORT-01, 10, 11, and 12.
-3. Continuity and flexibility: REPORT-02, 05, 13, 14, and 15.
+CONSOLIDATION MAP
 
-All REPORT ideas cite the source report above. Path-specific findings come from
+Clear duplicates merged:
+- Original user idea 2 + REPORT-08 -> entry 2, code review skill and review gate.
+- Original user idea 3 + REPORT-03 -> entry 3, test generation and independent expected results.
+
+Shared quality topic and conflicts grouped:
+- Original user ideas 8, 9, and 10 + REPORT-14 -> entry 8.
+- Entry 8 keeps the quality criteria and both unresolved convention conflicts.
+- Each conflict labels the user's position and the report-derived alternative.
+- Original user ideas 6 and 7 remain separate because their scopes differ.
+  They complement entry 8 and are not clear duplicates of each other.
+- REPORT-12 and REPORT-15 remain separate because recovery contracts and
+  system-specific evidence add distinct proposals.
+
+Coverage:
+- All 10 original user ideas and all 15 report-derived proposals remain represented.
+- The consolidated list has 20 active entries, including one grouped quality entry.
+- Old IDs above identify sources. They are not additional proposals.
+
+Suggested discussion order:
+1. Evidence and acceptance: entry 3, REPORT-04, REPORT-06, REPORT-07, entry 2, and REPORT-09.
+2. Failure and delivery: REPORT-01, REPORT-10, REPORT-11, and REPORT-12.
+3. Continuity and flexibility: REPORT-02, REPORT-05, REPORT-13, entry 8, and REPORT-15.
+4. Resolve the two convention conflicts in entry 8 before adopting either position.
+
+All report-derived ideas cite the source report above. Path-specific findings come from
 the stated repository baseline. The proposed file names and gate details are
 adaptations for this project, not claims that the report mandates one tool layout.
