@@ -1,0 +1,45 @@
+SDD Workflow - Proposed Ideas
+Approved for recording: October 17, 2026
+
+These notes record proposed changes. Approval to record them does not authorize implementation.
+
+1. Rename the project
+   Rename project-init to "SDD Workflow".
+   SDD stands for Spec Driven Development.
+
+2. Add a code review skill
+   Add a dedicated skill for code review.
+
+3. Add a test generation skill
+   Derive tests, including edge cases, from the specification and design.
+   Implement this capability as a skill.
+
+4. Put linters and checkers in one folder
+   Collect the linting and checking scripts and their configurations in a single dedicated folder.
+
+5. Research and improve the source folder structure
+   Research common source folder structures before choosing the layout.
+   Include frontend, backend, and named feature or component subfolders where appropriate.
+
+6. Make the workflow and CLAUDE.md less rigid
+   Reduce overly specific instructions.
+   Give AI room to choose how to meet the requirements.
+   Review constraints that could cause bugs or other issues.
+
+7. Make the workflow independent of programming language
+   Support different programming languages without tying the core workflow to one language.
+
+8. Rethink software quality
+   Reconsider what software quality means and how the workflow should assess it.
+
+9. Keep imports at the top of each file
+   Add a rule to CLAUDE.md that imports must appear at the top of the file.
+   Do not place imports inside functions, methods, or other code blocks.
+
+10. Use one class per file
+    Add these rules to CLAUDE.md:
+    - Each class must have its own file.
+    - A file must not define more than one class.
+    - A class must not span multiple files.
+    - A class file must not contain standalone functions or executable code outside the class.
+    - Imports remain at the top of the file, as specified in idea 9.
