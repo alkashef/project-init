@@ -32,40 +32,59 @@ decision IDs, acceptance examples, thin milestones, scope controls, and checks.
 The proposals below extend or reconcile those controls.
 
 
+QUALITY-IMPACT RANKING
+Ranked: October 17, 2026
+
+Objective: Rank the 20 existing proposals by their likely additional effect on
+the quality of programs generated through this SDD workflow.
+Basis: A fresh review of Fully_AI_Assisted_SDD_October_2026.html
+(October 16, 2026), especially Sections 4.4, 5.6, 5.8-5.11, and Appendix 3.
+
+This order is engineering judgment, not a measured effect size or a ranking
+published by the report. Adjacent ranks are approximate. No project experiment
+established numerical quality gains.
+
+Assess correctness first, then reliability, maintainability, and operating fitness.
+Consider the gap identified in the earlier repository review and whether a
+proposal detects defects, prevents unsupported acceptance, or preserves quality
+through later changes. Broad controls rank above cosmetic or organizational edits.
+The report's engineering scope excludes security and compliance. This ranking
+does not assess those areas or add proposals beyond the existing 20.
+
+This ranks additions to the current workflow. Approved specifications and design
+remain prerequisites, even though they are not new entries in this list.
+The order ranks expected impact, not implementation sequence, effort, or value
+per hour. Several proposals work together and their benefits must not be added.
+In particular, rank 4 needs the check inventory at rank 5 and credible tests.
+Do not remove the lower-ranked controls merely because their direct impact is smaller.
+
+Context can change the order:
+- Existing systems raise the importance of baseline and compatibility controls.
+- Services and persistent data raise the importance of recovery contracts.
+- High-stakes calculations raise the importance of independent reference results.
+- The unresolved import and class restrictions remain unresolved.
+  Rank 7 reflects the quality criteria, not an endorsement of either disputed rule.
+
+Stable IDs:
+- USER-01 through USER-08 identify the previous consolidated user/merged entries.
+- REPORT IDs retain their prior meanings.
+- Rank numbers indicate priority only. References below use stable IDs.
+- Historical [High] and [Medium] labels inside proposals belong to the earlier
+  review. The new rank and impact assessment govern this ordering.
+
 ===============================================================================
-USER IDEAS AND MERGED ENTRIES
+20 PROPOSALS IN DESCENDING ORDER OF EXPECTED QUALITY IMPACT
 ===============================================================================
 
 Source labels distinguish the user's proposals from report-derived extensions.
 Report-derived proposals adapt the report to the reviewed repository.
 They do not imply that the report mandates a particular skill or file layout.
 
-1. Rename the project
-   Rename project-init to "SDD Workflow".
-   SDD stands for Spec Driven Development.
-   Source: User, original idea 1.
+RANK 01 | USER-03 | Test generation with independent expected results
+Expected impact: Very high.
+Ranking reason: Prevents code and tests from agreeing on the same wrong business rule. Adds meaningful boundary and failure coverage.
+Ranking basis: Sections 4.4 (#two-questions) and 5.6 (#stage-06).
 
-2. Add a code review skill
-   Add a dedicated skill for code review.
-   Source: User, original idea 2.
-
-Report-derived extension [High]; former REPORT-08:
-Current: W moves from implementation and checks to documentation and commit.
-The generated project skills cover specification, design, and planning, but no
-dedicated review skill is supplied.
-Proposal: Review the actual diff
-against approved requirements, design, contracts, and verification evidence.
-List each finding with its requirement or decision reference, file location,
-consequence, severity, and proposed remedy. Seek counterexamples, failure paths,
-weak tests, and unjustified complexity.
-Report findings before edits. Track resolution or explicit acceptance of each
-material finding. Treat behavior-preserving refactoring separately from a change
-to approved behavior. A second AI review supplements human judgment and tests.
-Report: Section 5.10, "Review and refactor for maintainability" (#stage-10).
-Also Appendix 3 (#quality).
-Why: A clean lint result and the implementer's success report do not replace review.
-
-3. Add a test generation skill
    Derive tests, including edge cases, from the specification and design.
    Implement this capability as a skill.
    Source: User, original idea 3.
@@ -85,26 +104,118 @@ Report: Section 5.6, "Establish tests and expected results" (#stage-06).
 Also Section 4.4, "Two distinct questions about correctness" (#two-questions).
 Why: Generated code and generated tests can agree on the same wrong assumption.
 
-4. Put linters and checkers in one folder
-   Collect the linting and checking scripts and their configurations in a single dedicated folder.
-   Source: User, original idea 4.
+-------------------------------------------------------------------------------
 
-5. Research and improve the source folder structure
-   Research common source folder structures before choosing the layout.
-   Include frontend, backend, and named feature or component subfolders where appropriate.
-   Source: User, original idea 5.
+RANK 02 | REPORT-04 | Real integration and end-to-end evidence
+Expected impact: Very high.
+Ranking reason: Exposes defects in real dependencies and combined workflows that isolated fakes cannot detect.
+Ranking basis: Section 5.8 (#stage-08) and Appendix 2 (#production).
 
-6. Make the workflow and CLAUDE.md less rigid
-   Reduce overly specific instructions.
-   Give AI room to choose how to meet the requirements.
-   Review constraints that could cause bugs or other issues.
-   Source: User, original idea 6.
+Current: G's Testing section requires fakes at external boundaries and prohibits
+tests that need real networks, clocks, or external servers. Its HTTP API section
+uses the framework test client without starting a server.
+Proposal: Keep fast, isolated unit tests. Add integration, contract, and end-to-end
+checks where they establish behavior that fakes cannot establish.
+Use controlled test services, temporary storage, approved fixtures, and isolated
+environments. Never use production data or services without authorization.
+For interfaces that matter, exercise the actual integration or deployment path.
+Mark unavailable integration checks as not run, with the remaining evidence gap.
+Report: Section 5.8, "Verify the integrated result" (#stage-08).
+Also Section 5.6 (#stage-06) and Appendix 2 (#production), Integration.
+Why: A fake or in-process test client cannot establish every external interaction.
 
-7. Make the workflow independent of programming language
-   Support different programming languages without tying the core workflow to one language.
-   Source: User, original idea 7.
+-------------------------------------------------------------------------------
 
-8. Software quality and coding conventions [UNRESOLVED CONFLICTS]
+RANK 03 | USER-02 | Code review with tracked findings and repairs
+Expected impact: Very high.
+Ranking reason: Finds design, logic, failure-path, and maintenance defects that passing tests can miss.
+Ranking basis: Section 5.10 (#stage-10) and Appendix 3 (#quality).
+
+   Add a dedicated skill for code review.
+   Source: User, original idea 2.
+
+Report-derived extension [High]; former REPORT-08:
+Current: W moves from implementation and checks to documentation and commit.
+The generated project skills cover specification, design, and planning, but no
+dedicated review skill is supplied.
+Proposal: Review the actual diff
+against approved requirements, design, contracts, and verification evidence.
+List each finding with its requirement or decision reference, file location,
+consequence, severity, and proposed remedy. Seek counterexamples, failure paths,
+weak tests, and unjustified complexity.
+Report findings before edits. Track resolution or explicit acceptance of each
+material finding. Treat behavior-preserving refactoring separately from a change
+to approved behavior. A second AI review supplements human judgment and tests.
+Report: Section 5.10, "Review and refactor for maintainability" (#stage-10).
+Also Appendix 3 (#quality).
+Why: A clean lint result and the implementer's success report do not replace review.
+
+-------------------------------------------------------------------------------
+
+RANK 04 | REPORT-07 | Require evidence before milestone completion
+Expected impact: Very high.
+Ranking reason: Makes verification and review part of the completion decision, so unsupported success cannot advance the workflow.
+Ranking basis: Sections 5.8 (#stage-08), 5.11 (#stage-11), and Appendix 1 (#checklist).
+
+Current: R's failure_reason() checks that the row disappeared or became blocked,
+the Git tree is clean, and commits were pushed. Hooks provide checks, but the
+runner does not inspect a required verification record.
+Proposal: Require an evidence record linked to the completed implementation
+revision, including mandatory check outcomes and required review disposition.
+Check that the code and configuration being accepted match the tested revision.
+Keep distinct states for execution complete, verification complete, and accepted
+for release. A pushed commit must not imply production acceptance.
+Report: Section 5.8 (#stage-08) and Section 5.11 (#stage-11).
+Also Appendix 1 (#checklist), Stop conditions.
+Why: Plan removal and clean Git state establish process state, not correctness.
+
+-------------------------------------------------------------------------------
+
+RANK 05 | REPORT-06 | Explicit check inventory and truthful results
+Expected impact: Very high.
+Ranking reason: Prevents absent, skipped, or unexecuted checks from passing as verified success. Supplies the evidence required by rank 4.
+Ranking basis: Section 5.8 (#stage-08) and Appendix 1 (#checklist).
+
+Current: C discovers checks from files and patterns. check_all() reports
+"All checks passed." if the discovered checks produce no failures.
+G's task report asks for a passed-test count but no full execution inventory.
+Proposal: Define required checks for the approved increment. Report each check as
+passed, failed, skipped, not run, or not applicable, with a reason and evidence.
+Record commands, environment, fixtures, observed outputs, and the tested revision.
+Distinguish "no applicable checks" from verified success. Block completion when
+a required check is missing or did not run.
+Keep quick edit checks separate from the complete verification gate.
+Report: Section 5.8, "Verify the integrated result" (#stage-08).
+Also Appendix 1 (#checklist), Verification and Stop conditions.
+Why: No discovered failure is weaker evidence than completion of required checks.
+
+-------------------------------------------------------------------------------
+
+RANK 06 | REPORT-09 | Validate real user tasks and operating targets
+Expected impact: High.
+Ranking reason: Detects software that matches a specification but fails its intended use or realistic workload.
+Ranking basis: Sections 4.4 (#two-questions), 5.11 (#stage-11), and Appendix 2 (#production).
+
+Current: S includes user scenarios and quality targets. W has no explicit stage
+where a domain owner evaluates the release against representative real tasks.
+Proposal: Add a validation and release decision after technical verification.
+Use representative workflows, input sizes, outputs, and failure conditions.
+Assess usefulness and correctness with the appropriate domain owner.
+Measure applicable performance, reliability, recovery, and usability targets.
+Record accepted criteria, failed criteria, untested criteria, and justified
+exclusions. Unresolved mandatory criteria block release.
+Report: Section 4.4, "Two distinct questions about correctness" (#two-questions).
+Also Section 5.11, "Validate intended use and production readiness" (#stage-11),
+and Appendix 2 (#production).
+Why: Software can meet its specification while solving the wrong problem.
+
+-------------------------------------------------------------------------------
+
+RANK 07 | USER-08 | Outcome-based quality and unresolved coding conventions
+Expected impact: High.
+Ranking reason: Gives generation and review useful quality targets beyond style metrics. The unresolved import and class restrictions have no assumed benefit.
+Ranking basis: Sections 5.4 (#stage-04), 5.10 (#stage-10), and Appendix 3 (#quality).
+
    Sources: original user ideas 8, 9, and 10, plus former REPORT-14.
    The user's quality question and the report-derived quality criteria complement each other.
    The universal import and class rules conflict with the report-derived proposal
@@ -158,30 +269,16 @@ prescribe either rule as a universal quality requirement.
 Report: Section 5.2 (#stage-02), short persistent instructions.
 Also Section 5.4 (#stage-04), Section 5.10 (#stage-10), and Appendix 3 (#quality).
 Why: More restrictions do not automatically improve software quality.
-This supports user ideas 6 and 7 and the quality question in this entry.
-It questions the universal scope of the user's import and class rules below.
+This supports USER-06 and USER-07 and the quality question in this entry.
+It questions the universal scope of the user's import and class rules above.
 
-===============================================================================
-REMAINING IDEAS DERIVED FROM THE REPORT: FULLY AI-ASSISTED, SPEC-DRIVEN DEVELOPMENT
-===============================================================================
+-------------------------------------------------------------------------------
 
-These entries come from the report and repository comparison described above.
-REPORT IDs remain stable. Former REPORT-03, REPORT-08, and REPORT-14 now live
-in merged entries 3, 2, and 8 respectively.
+RANK 08 | REPORT-02 | Trace requirements through design, tests, and results
+Expected impact: High.
+Ranking reason: Exposes omitted requirements and contradictions before execution, then preserves evidence of what the implementation actually satisfies.
+Ranking basis: Sections 4.5 (#traceability), 5.5 (#stage-05), and 5.13 (#stage-13).
 
-REPORT-01 [High] Add an explicit baseline before planning a change
-Current: W starts with specification. S, D, and P inspect existing files, but the
-workflow has no explicit baseline record with executed checks and known failures.
-Proposal: Before planning, record the source revision, relevant system map,
-runtime and dependency versions, existing test results, and known defects.
-For a new project, establish its build and test environment. For an existing
-project, record behavior and compatibility obligations that must survive.
-Record pre-existing failures separately from regressions introduced by the change.
-Report: Section 5.2, "Inspect the system and establish a baseline" (#stage-02).
-Also Section 5.1, "Define the outcome and boundaries" (#stage-01).
-Why: Later claims need a factual starting point and a clear delivery boundary.
-
-REPORT-02 [High] Keep a usable chain from requirements to completed evidence
 Current: P checks requirement coverage and references. W deletes completed
 milestones and leaves the completed record in Git history.
 Proposal: Add a consistency check before execution across the specification,
@@ -195,91 +292,13 @@ Also Sections 4.2 (#artifacts), 5.5 (#stage-05), and 5.13 (#stage-13).
 Why: IDs and historical commits alone do not give a current requirement-to-result
 view. This extends the existing coverage check rather than replacing it.
 
-REPORT-04 [High] Separate isolated tests from real integration evidence
-Current: G's Testing section requires fakes at external boundaries and prohibits
-tests that need real networks, clocks, or external servers. Its HTTP API section
-uses the framework test client without starting a server.
-Proposal: Keep fast, isolated unit tests. Add integration, contract, and end-to-end
-checks where they establish behavior that fakes cannot establish.
-Use controlled test services, temporary storage, approved fixtures, and isolated
-environments. Never use production data or services without authorization.
-For interfaces that matter, exercise the actual integration or deployment path.
-Mark unavailable integration checks as not run, with the remaining evidence gap.
-Report: Section 5.8, "Verify the integrated result" (#stage-08).
-Also Section 5.6 (#stage-06) and Appendix 2 (#production), Integration.
-Why: A fake or in-process test client cannot establish every external interaction.
+-------------------------------------------------------------------------------
 
-REPORT-05 [Medium] Require a meaningful failing test, not just any failure
-Current: W's Execute loop says that new tests must fail. M applies a failing-test
-condition to every milestone and rejects setup work that no test can show.
-Proposal: For behavior changes and defect repairs, record why the new regression
-or acceptance check fails before the repair and passes afterward.
-An import error, broken fixture, or missing tool does not establish that a test
-detects the intended behavioral defect.
-Give setup, documentation, and refactoring work suitable evidence instead of
-forcing an artificial failing behavioral test. Preserve tests-first work where
-it adds useful evidence.
-Report: Section 5.6, "Establish tests and expected results" (#stage-06).
-Also Section 5.5 (#stage-05) and Section 5.10 (#stage-10).
-Why: The reason for a failure matters more than the presence of a red result.
+RANK 09 | REPORT-11 | Diagnose causes before repairs and retain useful work
+Expected impact: High.
+Ranking reason: Reduces speculative edits, repeated failed repairs, and regressions caused by changing the wrong artifact.
+Ranking basis: Section 5.9 (#stage-09) and Appendix 1 (#checklist).
 
-REPORT-06 [High] Make check results explicit and prevent empty success claims
-Current: C discovers checks from files and patterns. check_all() reports
-"All checks passed." if the discovered checks produce no failures.
-G's task report asks for a passed-test count but no full execution inventory.
-Proposal: Define required checks for the approved increment. Report each check as
-passed, failed, skipped, not run, or not applicable, with a reason and evidence.
-Record commands, environment, fixtures, observed outputs, and the tested revision.
-Distinguish "no applicable checks" from verified success. Block completion when
-a required check is missing or did not run.
-Keep quick edit checks separate from the complete verification gate.
-Report: Section 5.8, "Verify the integrated result" (#stage-08).
-Also Appendix 1 (#checklist), Verification and Stop conditions.
-Why: No discovered failure is weaker evidence than completion of required checks.
-
-REPORT-07 [High] Strengthen the milestone runner's completion decision
-Current: R's failure_reason() checks that the row disappeared or became blocked,
-the Git tree is clean, and commits were pushed. Hooks provide checks, but the
-runner does not inspect a required verification record.
-Proposal: Require an evidence record linked to the completed implementation
-revision, including mandatory check outcomes and required review disposition.
-Check that the code and configuration being accepted match the tested revision.
-Keep distinct states for execution complete, verification complete, and accepted
-for release. A pushed commit must not imply production acceptance.
-Report: Section 5.8 (#stage-08) and Section 5.11 (#stage-11).
-Also Appendix 1 (#checklist), Stop conditions.
-Why: Plan removal and clean Git state establish process state, not correctness.
-
-REPORT-09 [High] Separate specification verification from user validation
-Current: S includes user scenarios and quality targets. W has no explicit stage
-where a domain owner evaluates the release against representative real tasks.
-Proposal: Add a validation and release decision after technical verification.
-Use representative workflows, input sizes, outputs, and failure conditions.
-Assess usefulness and correctness with the appropriate domain owner.
-Measure applicable performance, reliability, recovery, and usability targets.
-Record accepted criteria, failed criteria, untested criteria, and justified
-exclusions. Unresolved mandatory criteria block release.
-Report: Section 4.4, "Two distinct questions about correctness" (#two-questions).
-Also Section 5.11, "Validate intended use and production readiness" (#stage-11),
-and Appendix 2 (#production).
-Why: Software can meet its specification while solving the wrong problem.
-
-REPORT-10 [High] Add a checked handover and repeatable release
-Current: W updates inaccurate documents and G requires README setup instructions.
-G pins direct dependencies, but a clean-environment setup and release handover
-are not explicit workflow gates.
-Proposal: Test the documented setup from a clean environment. Retain sufficient
-dependency and environment information to repeat it, including resolved versions
-where direct pins alone do not control installation.
-Identify the release artifact and source revision. Include operation, diagnostics,
-known limits, ownership, safe reruns, and recovery instructions.
-Check that the instructions work for someone other than the implementer.
-Report: Section 5.12, "Document, release, and hand over" (#stage-12).
-Also Appendix 2 (#production), Delivery and Operation.
-Why: Committing code and documenting commands do not establish installability or
-operational readiness.
-
-REPORT-11 [High] Diagnose failures and preserve safe partial work
 Current: W sends failed checks back to implementation. Its blocked path requires
 leaving every other file unchanged and committing only the plan.
 That instruction does not explain how to handle a blocker found after useful edits.
@@ -294,7 +313,13 @@ Also Section 5.7 (#stage-07) and Appendix 1 (#checklist), Session handover promp
 Why: Repeated edits without a supported cause can hide the original defect.
 The partial-work handling is an adaptation of the report to W's blocked procedure.
 
-REPORT-12 [High] Replace blanket failure policies with approved recovery contracts
+-------------------------------------------------------------------------------
+
+RANK 10 | REPORT-12 | Design and test recovery behavior
+Expected impact: High; system-dependent.
+Ranking reason: Improves behavior after partial failures, retries, and interruptions. Its impact rises for services and persistent data.
+Ranking basis: Sections 5.4 (#stage-04), 5.9 (#stage-09), and 5.14 (#system-types).
+
 Current: G's Error handling and LLM sections forbid recovery, fallback, and retry.
 Its Data and storage section requires a backup before rewriting stored data.
 Proposal: Let the approved specification and design define failure behavior.
@@ -309,7 +334,13 @@ Also Sections 5.9 (#stage-09), 5.12 (#stage-12), and 5.14 (#system-types).
 Why: A universal no-recovery rule can conflict with the required system behavior.
 This proposes design-driven recovery, not unrestricted or automatic retries.
 
-REPORT-13 [Medium] Make later changes follow an explicit impact assessment
+-------------------------------------------------------------------------------
+
+RANK 11 | REPORT-13 | Assess change impacts and preserve approved intent
+Expected impact: High for evolving systems.
+Ranking reason: Prevents later changes from breaking contracts, stored data, and existing behavior or creating specification drift.
+Ranking basis: Section 5.13 (#stage-13).
+
 Current: W supports changes, S proposes specification amendments, and G updates
 living documents. The cross-artifact and compatibility review remains distributed.
 Proposal: Add a compact change procedure from the current accepted baseline.
@@ -322,7 +353,72 @@ Report: Section 5.13, "Maintain the specification through later changes"
 (#stage-13).
 Why: This strengthens existing amendment rules and prevents gradual artifact drift.
 
-REPORT-15 [Medium] Scale evidence and workflow depth to the kind of system
+-------------------------------------------------------------------------------
+
+RANK 12 | REPORT-01 | Record a factual baseline before changes
+Expected impact: Medium-high; context-dependent.
+Ranking reason: Separates old failures from regressions and exposes environment or compatibility assumptions. Its impact rises for existing systems.
+Ranking basis: Sections 5.2 (#stage-02) and 5.1 (#stage-01).
+
+Current: W starts with specification. S, D, and P inspect existing files, but the
+workflow has no explicit baseline record with executed checks and known failures.
+Proposal: Before planning, record the source revision, relevant system map,
+runtime and dependency versions, existing test results, and known defects.
+For a new project, establish its build and test environment. For an existing
+project, record behavior and compatibility obligations that must survive.
+Record pre-existing failures separately from regressions introduced by the change.
+Report: Section 5.2, "Inspect the system and establish a baseline" (#stage-02).
+Also Section 5.1, "Define the outcome and boundaries" (#stage-01).
+Why: Later claims need a factual starting point and a clear delivery boundary.
+
+-------------------------------------------------------------------------------
+
+RANK 13 | REPORT-10 | Repeatable installation, release, and checked handover
+Expected impact: Medium-high.
+Ranking reason: Detects installation and environment failures and makes the accepted release operable and recoverable by someone else.
+Ranking basis: Section 5.12 (#stage-12) and Appendix 2 (#production).
+
+Current: W updates inaccurate documents and G requires README setup instructions.
+G pins direct dependencies, but a clean-environment setup and release handover
+are not explicit workflow gates.
+Proposal: Test the documented setup from a clean environment. Retain sufficient
+dependency and environment information to repeat it, including resolved versions
+where direct pins alone do not control installation.
+Identify the release artifact and source revision. Include operation, diagnostics,
+known limits, ownership, safe reruns, and recovery instructions.
+Check that the instructions work for someone other than the implementer.
+Report: Section 5.12, "Document, release, and hand over" (#stage-12).
+Also Appendix 2 (#production), Delivery and Operation.
+Why: Committing code and documenting commands do not establish installability or
+operational readiness.
+
+-------------------------------------------------------------------------------
+
+RANK 14 | REPORT-05 | Prove that failing tests detect the intended defect
+Expected impact: Medium-high.
+Ranking reason: Rejects meaningless red results caused by broken setup. Strengthens the test basis already ranked first.
+Ranking basis: Section 5.6 (#stage-06).
+
+Current: W's Execute loop says that new tests must fail. M applies a failing-test
+condition to every milestone and rejects setup work that no test can show.
+Proposal: For behavior changes and defect repairs, record why the new regression
+or acceptance check fails before the repair and passes afterward.
+An import error, broken fixture, or missing tool does not establish that a test
+detects the intended behavioral defect.
+Give setup, documentation, and refactoring work suitable evidence instead of
+forcing an artificial failing behavioral test. Preserve tests-first work where
+it adds useful evidence.
+Report: Section 5.6, "Establish tests and expected results" (#stage-06).
+Also Section 5.5 (#stage-05) and Section 5.10 (#stage-10).
+Why: The reason for a failure matters more than the presence of a red result.
+
+-------------------------------------------------------------------------------
+
+RANK 15 | REPORT-15 | Match evidence to the kind of system
+Expected impact: Medium; system-dependent.
+Ranking reason: Adds the checks that matter to the actual workload and avoids irrelevant ceremony. Amplifies earlier controls rather than replacing them.
+Ranking basis: Section 5.14 (#system-types) and Appendix 2 (#production).
+
 Current: The generator selects optional stack modules, but W applies the same
 execution loop and milestone template to every project.
 Proposal: Keep one shared workflow with applicable evidence profiles.
@@ -338,32 +434,81 @@ Report: Section 5.14, "Adapt the same workflow to different systems"
 (#system-types). Also Section 4.2 (#artifacts) and Appendix 2 (#production).
 Why: Proportionate evidence makes the workflow reusable without adding needless work.
 
-CONSOLIDATION MAP
+-------------------------------------------------------------------------------
 
-Clear duplicates merged:
-- Original user idea 2 + REPORT-08 -> entry 2, code review skill and review gate.
-- Original user idea 3 + REPORT-03 -> entry 3, test generation and independent expected results.
+RANK 16 | USER-06 | Remove unjustified rigidity from instructions
+Expected impact: Medium; conditional.
+Ranking reason: Can remove constraints that force poor designs. Benefit depends on retaining approved contracts, acceptance criteria, and evidence gates.
+Ranking basis: Sections 5.2 (#stage-02), 5.4 (#stage-04), and Appendix 3 (#quality).
 
-Shared quality topic and conflicts grouped:
-- Original user ideas 8, 9, and 10 + REPORT-14 -> entry 8.
-- Entry 8 keeps the quality criteria and both unresolved convention conflicts.
-- Each conflict labels the user's position and the report-derived alternative.
-- Original user ideas 6 and 7 remain separate because their scopes differ.
-  They complement entry 8 and are not clear duplicates of each other.
-- REPORT-12 and REPORT-15 remain separate because recovery contracts and
-  system-specific evidence add distinct proposals.
+   Reduce overly specific instructions.
+   Give AI room to choose how to meet the requirements.
+   Review constraints that could cause bugs or other issues.
+   Source: User, original idea 6.
 
-Coverage:
-- All 10 original user ideas and all 15 report-derived proposals remain represented.
-- The consolidated list has 20 active entries, including one grouped quality entry.
-- Old IDs above identify sources. They are not additional proposals.
+-------------------------------------------------------------------------------
 
-Suggested discussion order:
-1. Evidence and acceptance: entry 3, REPORT-04, REPORT-06, REPORT-07, entry 2, and REPORT-09.
-2. Failure and delivery: REPORT-01, REPORT-10, REPORT-11, and REPORT-12.
-3. Continuity and flexibility: REPORT-02, REPORT-05, REPORT-13, entry 8, and REPORT-15.
-4. Resolve the two convention conflicts in entry 8 before adopting either position.
+RANK 17 | USER-05 | Choose source structure during design
+Expected impact: Low-medium.
+Ranking reason: Clear responsibility boundaries can help maintainability. Folder names alone do not establish cohesion, correctness, or sound architecture.
+Ranking basis: Section 5.4 (#stage-04) and Appendix 3 (#quality); report-informed assessment of a user proposal.
 
-All report-derived ideas cite the source report above. Path-specific findings come from
-the stated repository baseline. The proposed file names and gate details are
-adaptations for this project, not claims that the report mandates one tool layout.
+   Research common source folder structures before choosing the layout.
+   Include frontend, backend, and named feature or component subfolders where appropriate.
+   Source: User, original idea 5.
+
+-------------------------------------------------------------------------------
+
+RANK 18 | USER-07 | Keep the core workflow language-independent
+Expected impact: Low direct impact.
+Ranking reason: Improves reuse and language choice across projects. It does not directly improve a given program when its current language already fits.
+Ranking basis: Section 2.1 (#scope), 5.4 (#stage-04), and 5.14 (#system-types); report-informed assessment of a user proposal.
+
+   Support different programming languages without tying the core workflow to one language.
+   Source: User, original idea 7.
+
+-------------------------------------------------------------------------------
+
+RANK 19 | USER-04 | Collect linters and checkers in one folder
+Expected impact: Low direct impact.
+Ranking reason: Simplifies maintenance of the workflow tools. Moving files does not improve the checks or the generated program by itself.
+Ranking basis: Sections 5.8 (#stage-08) and Appendix 3 (#quality); indirect assessment, not a report recommendation for this folder layout.
+
+   Collect the linting and checking scripts and their configurations in a single dedicated folder.
+   Source: User, original idea 4.
+
+-------------------------------------------------------------------------------
+
+RANK 20 | USER-01 | Rename the project to SDD Workflow
+Expected impact: No direct impact.
+Ranking reason: Improves naming and communication. A rename does not change generated behavior, reliability, or maintainability.
+Ranking basis: Appendix 3 (#quality); indirect assessment, not a report recommendation to rename the project.
+
+   Rename project-init to "SDD Workflow".
+   SDD stands for Spec Driven Development.
+   Source: User, original idea 1.
+
+CONSOLIDATION AND SOURCE MAP
+
+- Original user idea 1 -> USER-01, rank 20.
+- Original user idea 2 + REPORT-08 -> USER-02, rank 3.
+- Original user idea 3 + REPORT-03 -> USER-03, rank 1.
+- Original user idea 4 -> USER-04, rank 19.
+- Original user idea 5 -> USER-05, rank 17.
+- Original user idea 6 -> USER-06, rank 16.
+- Original user idea 7 -> USER-07, rank 18.
+- Original user ideas 8, 9, and 10 + REPORT-14 -> USER-08, rank 7.
+  Both convention conflicts retain the user's position and report-derived alternative.
+- REPORT-01 -> rank 12. REPORT-02 -> rank 8. REPORT-04 -> rank 2.
+- REPORT-05 -> rank 14. REPORT-06 -> rank 5. REPORT-07 -> rank 4.
+- REPORT-09 -> rank 6. REPORT-10 -> rank 13. REPORT-11 -> rank 9.
+- REPORT-12 -> rank 10. REPORT-13 -> rank 11. REPORT-15 -> rank 15.
+
+All 10 original user ideas and all 15 report-derived proposals remain represented
+in these 20 consolidated entries. Old IDs identify sources, not additional ideas.
+The two convention conflicts remain unresolved. No proposal is implemented.
+
+All report-derived ideas retain their report section references and anchors.
+Path-specific findings come from the original repository baseline stated above.
+The ranking does not claim a new code audit or executed application tests.
+File names, gate details, and skill packaging are adaptations for this project.
