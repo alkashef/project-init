@@ -35,7 +35,7 @@ The proposals below extend or reconcile those controls.
 QUALITY-IMPACT RANKING
 Ranked: October 17, 2026
 
-Objective: Rank the 20 existing proposals by their likely additional effect on
+Objective: Rank the 21 existing proposals by their likely additional effect on
 the quality of programs generated through this SDD workflow.
 Basis: A fresh review of Fully_AI_Assisted_SDD_October_2026.html
 (October 16, 2026), especially Sections 4.4, 5.6, 5.8-5.11, and Appendix 3.
@@ -49,7 +49,7 @@ Consider the gap identified in the earlier repository review and whether a
 proposal detects defects, prevents unsupported acceptance, or preserves quality
 through later changes. Broad controls rank above cosmetic or organizational edits.
 The report's engineering scope excludes security and compliance. This ranking
-does not assess those areas or add proposals beyond the existing 20.
+does not assess those areas or add proposals beyond the listed ideas.
 
 This ranks additions to the current workflow. Approved specifications and design
 remain prerequisites, even though they are not new entries in this list.
@@ -65,15 +65,20 @@ Context can change the order:
 - The unresolved import and class restrictions remain unresolved.
   Rank 7 reflects the quality criteria, not an endorsement of either disputed rule.
 
+New proposal added: October 17, 2026. USER-09 enters at rank 9.
+Existing entries from the previous rank 9 onward move down one position.
+This placement reflects the additional value beyond the existing design skill.
+
 Stable IDs:
 - USER-01 through USER-08 identify the previous consolidated user/merged entries.
+- USER-09 identifies the new system overview and design-check proposal.
 - REPORT IDs retain their prior meanings.
 - Rank numbers indicate priority only. References below use stable IDs.
 - Historical [High] and [Medium] labels inside proposals belong to the earlier
   review. The new rank and impact assessment govern this ordering.
 
 ===============================================================================
-20 PROPOSALS IN DESCENDING ORDER OF EXPECTED QUALITY IMPACT
+21 PROPOSALS IN DESCENDING ORDER OF EXPECTED QUALITY IMPACT
 ===============================================================================
 
 Source labels distinguish the user's proposals from report-derived extensions.
@@ -294,7 +299,69 @@ view. This extends the existing coverage check rather than replacing it.
 
 -------------------------------------------------------------------------------
 
-RANK 09 | REPORT-11 | Diagnose causes before repairs and retain useful work
+RANK 09 | USER-09 | System overview skill and design check before code changes
+Expected impact: High; incremental benefit depends on existing design coverage.
+Ranking reason: Makes system boundaries and contracts easier to understand and requires code changes to respect the approved design.
+Ranking basis: Sections 5.2 (#stage-02), 5.4 (#stage-04), 5.7 (#stage-07), and 5.13 (#stage-13).
+This is a user proposal. The report references support its engineering rationale,
+not its origin or a requirement to create a separate skill.
+
+Source: User, new proposal on October 17, 2026.
+User request:
+- Add a skill that generates a high-level description of the system.
+- Include its design, data model and schema where applicable, and interfaces.
+- Include UML or other useful diagrams where they clarify the system.
+- Guide AI to check the design before touching the code.
+
+Current overlap:
+The existing write-design skill already covers architecture, data structures,
+interfaces, technology choices, and diagrams when useful. It distinguishes
+implemented facts from proposed design and keeps design in docs/design.md.
+The new proposal strengthens accessible system description and explicit use of
+that description during implementation. It does not assume those concerns are absent.
+
+Proposed refinement for discussion:
+1. Generate a clear overview of purpose, boundaries, components, responsibilities,
+   dependencies, and important flows from approved requirements and design.
+2. Include the applicable data model: entities, fields and types, identifiers,
+   relationships, constraints, ownership, and persistence boundaries.
+3. Describe public and component interfaces: inputs, outputs, errors, and contracts.
+4. Add diagrams only when useful, such as component, sequence, class, or data diagrams.
+   Do not require every diagram type for every project.
+5. Keep the approved design authoritative. Place the overview in that document,
+   or link a derived view to its authoritative sections instead of duplicating facts.
+6. For existing systems, inspect code and schemas as evidence of implemented behavior.
+   Label differences between the current implementation and approved design.
+   Do not silently rewrite the approved design to match the code.
+7. Before changing application code, read the relevant approved specification,
+   design sections, contracts, and current implementation. Identify affected
+   components, interfaces, data, decisions, and constraints.
+8. If the change requires a different design or exposes a contradiction, resolve
+   the affected design decision before edits that depend on it.
+   Do not require repeated approval for decisions already approved.
+9. Keep the overview and diagrams consistent after authorized design changes.
+
+Packaging decision remains open:
+Reuse and extend write-design, or add a dedicated skill that reads its authoritative
+output. Do not create a competing design authority.
+
+Related entries:
+- REPORT-02: consistency and traceability across requirements, design, and evidence.
+- REPORT-13: impact assessment and updates through later changes.
+- USER-05: source layout as one design view.
+These remain distinct proposals. This entry focuses on the system description
+and the check before code edits.
+
+Supporting report sections:
+Section 5.2, "Inspect the system and establish a baseline" (#stage-02).
+Section 5.4, "Design the system and its contracts" (#stage-04).
+Section 5.7, "Implement one bounded change across files" (#stage-07).
+Section 5.13, "Maintain the specification through later changes" (#stage-13).
+Status: Proposed only. No skill or workflow rule is implemented.
+
+-------------------------------------------------------------------------------
+
+RANK 10 | REPORT-11 | Diagnose causes before repairs and retain useful work
 Expected impact: High.
 Ranking reason: Reduces speculative edits, repeated failed repairs, and regressions caused by changing the wrong artifact.
 Ranking basis: Section 5.9 (#stage-09) and Appendix 1 (#checklist).
@@ -315,7 +382,7 @@ The partial-work handling is an adaptation of the report to W's blocked procedur
 
 -------------------------------------------------------------------------------
 
-RANK 10 | REPORT-12 | Design and test recovery behavior
+RANK 11 | REPORT-12 | Design and test recovery behavior
 Expected impact: High; system-dependent.
 Ranking reason: Improves behavior after partial failures, retries, and interruptions. Its impact rises for services and persistent data.
 Ranking basis: Sections 5.4 (#stage-04), 5.9 (#stage-09), and 5.14 (#system-types).
@@ -336,7 +403,7 @@ This proposes design-driven recovery, not unrestricted or automatic retries.
 
 -------------------------------------------------------------------------------
 
-RANK 11 | REPORT-13 | Assess change impacts and preserve approved intent
+RANK 12 | REPORT-13 | Assess change impacts and preserve approved intent
 Expected impact: High for evolving systems.
 Ranking reason: Prevents later changes from breaking contracts, stored data, and existing behavior or creating specification drift.
 Ranking basis: Section 5.13 (#stage-13).
@@ -355,7 +422,7 @@ Why: This strengthens existing amendment rules and prevents gradual artifact dri
 
 -------------------------------------------------------------------------------
 
-RANK 12 | REPORT-01 | Record a factual baseline before changes
+RANK 13 | REPORT-01 | Record a factual baseline before changes
 Expected impact: Medium-high; context-dependent.
 Ranking reason: Separates old failures from regressions and exposes environment or compatibility assumptions. Its impact rises for existing systems.
 Ranking basis: Sections 5.2 (#stage-02) and 5.1 (#stage-01).
@@ -373,7 +440,7 @@ Why: Later claims need a factual starting point and a clear delivery boundary.
 
 -------------------------------------------------------------------------------
 
-RANK 13 | REPORT-10 | Repeatable installation, release, and checked handover
+RANK 14 | REPORT-10 | Repeatable installation, release, and checked handover
 Expected impact: Medium-high.
 Ranking reason: Detects installation and environment failures and makes the accepted release operable and recoverable by someone else.
 Ranking basis: Section 5.12 (#stage-12) and Appendix 2 (#production).
@@ -394,7 +461,7 @@ operational readiness.
 
 -------------------------------------------------------------------------------
 
-RANK 14 | REPORT-05 | Prove that failing tests detect the intended defect
+RANK 15 | REPORT-05 | Prove that failing tests detect the intended defect
 Expected impact: Medium-high.
 Ranking reason: Rejects meaningless red results caused by broken setup. Strengthens the test basis already ranked first.
 Ranking basis: Section 5.6 (#stage-06).
@@ -414,7 +481,7 @@ Why: The reason for a failure matters more than the presence of a red result.
 
 -------------------------------------------------------------------------------
 
-RANK 15 | REPORT-15 | Match evidence to the kind of system
+RANK 16 | REPORT-15 | Match evidence to the kind of system
 Expected impact: Medium; system-dependent.
 Ranking reason: Adds the checks that matter to the actual workload and avoids irrelevant ceremony. Amplifies earlier controls rather than replacing them.
 Ranking basis: Section 5.14 (#system-types) and Appendix 2 (#production).
@@ -436,7 +503,7 @@ Why: Proportionate evidence makes the workflow reusable without adding needless 
 
 -------------------------------------------------------------------------------
 
-RANK 16 | USER-06 | Remove unjustified rigidity from instructions
+RANK 17 | USER-06 | Remove unjustified rigidity from instructions
 Expected impact: Medium; conditional.
 Ranking reason: Can remove constraints that force poor designs. Benefit depends on retaining approved contracts, acceptance criteria, and evidence gates.
 Ranking basis: Sections 5.2 (#stage-02), 5.4 (#stage-04), and Appendix 3 (#quality).
@@ -448,7 +515,7 @@ Ranking basis: Sections 5.2 (#stage-02), 5.4 (#stage-04), and Appendix 3 (#quali
 
 -------------------------------------------------------------------------------
 
-RANK 17 | USER-05 | Choose source structure during design
+RANK 18 | USER-05 | Choose source structure during design
 Expected impact: Low-medium.
 Ranking reason: Clear responsibility boundaries can help maintainability. Folder names alone do not establish cohesion, correctness, or sound architecture.
 Ranking basis: Section 5.4 (#stage-04) and Appendix 3 (#quality); report-informed assessment of a user proposal.
@@ -459,7 +526,7 @@ Ranking basis: Section 5.4 (#stage-04) and Appendix 3 (#quality); report-informe
 
 -------------------------------------------------------------------------------
 
-RANK 18 | USER-07 | Keep the core workflow language-independent
+RANK 19 | USER-07 | Keep the core workflow language-independent
 Expected impact: Low direct impact.
 Ranking reason: Improves reuse and language choice across projects. It does not directly improve a given program when its current language already fits.
 Ranking basis: Section 2.1 (#scope), 5.4 (#stage-04), and 5.14 (#system-types); report-informed assessment of a user proposal.
@@ -469,7 +536,7 @@ Ranking basis: Section 2.1 (#scope), 5.4 (#stage-04), and 5.14 (#system-types); 
 
 -------------------------------------------------------------------------------
 
-RANK 19 | USER-04 | Collect linters and checkers in one folder
+RANK 20 | USER-04 | Collect linters and checkers in one folder
 Expected impact: Low direct impact.
 Ranking reason: Simplifies maintenance of the workflow tools. Moving files does not improve the checks or the generated program by itself.
 Ranking basis: Sections 5.8 (#stage-08) and Appendix 3 (#quality); indirect assessment, not a report recommendation for this folder layout.
@@ -479,7 +546,7 @@ Ranking basis: Sections 5.8 (#stage-08) and Appendix 3 (#quality); indirect asse
 
 -------------------------------------------------------------------------------
 
-RANK 20 | USER-01 | Rename the project to SDD Workflow
+RANK 21 | USER-01 | Rename the project to SDD Workflow
 Expected impact: No direct impact.
 Ranking reason: Improves naming and communication. A rename does not change generated behavior, reliability, or maintainability.
 Ranking basis: Appendix 3 (#quality); indirect assessment, not a report recommendation to rename the project.
@@ -490,22 +557,24 @@ Ranking basis: Appendix 3 (#quality); indirect assessment, not a report recommen
 
 CONSOLIDATION AND SOURCE MAP
 
-- Original user idea 1 -> USER-01, rank 20.
+- Original user idea 1 -> USER-01, rank 21.
 - Original user idea 2 + REPORT-08 -> USER-02, rank 3.
 - Original user idea 3 + REPORT-03 -> USER-03, rank 1.
-- Original user idea 4 -> USER-04, rank 19.
-- Original user idea 5 -> USER-05, rank 17.
-- Original user idea 6 -> USER-06, rank 16.
-- Original user idea 7 -> USER-07, rank 18.
+- Original user idea 4 -> USER-04, rank 20.
+- Original user idea 5 -> USER-05, rank 18.
+- Original user idea 6 -> USER-06, rank 17.
+- Original user idea 7 -> USER-07, rank 19.
 - Original user ideas 8, 9, and 10 + REPORT-14 -> USER-08, rank 7.
   Both convention conflicts retain the user's position and report-derived alternative.
-- REPORT-01 -> rank 12. REPORT-02 -> rank 8. REPORT-04 -> rank 2.
-- REPORT-05 -> rank 14. REPORT-06 -> rank 5. REPORT-07 -> rank 4.
-- REPORT-09 -> rank 6. REPORT-10 -> rank 13. REPORT-11 -> rank 9.
-- REPORT-12 -> rank 10. REPORT-13 -> rank 11. REPORT-15 -> rank 15.
+- REPORT-01 -> rank 13. REPORT-02 -> rank 8. REPORT-04 -> rank 2.
+- REPORT-05 -> rank 15. REPORT-06 -> rank 5. REPORT-07 -> rank 4.
+- REPORT-09 -> rank 6. REPORT-10 -> rank 14. REPORT-11 -> rank 10.
+- REPORT-12 -> rank 11. REPORT-13 -> rank 12. REPORT-15 -> rank 16.
 
-All 10 original user ideas and all 15 report-derived proposals remain represented
-in these 20 consolidated entries. Old IDs identify sources, not additional ideas.
+- New user proposal: system overview and design check -> USER-09, rank 9.
+
+All 10 original user ideas, the new user proposal, and all 15 report-derived
+proposals remain represented in these 21 consolidated entries. Old IDs identify sources, not additional ideas.
 The two convention conflicts remain unresolved. No proposal is implemented.
 
 All report-derived ideas retain their report section references and anchors.
